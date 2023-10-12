@@ -15,3 +15,8 @@ SENDER_RMQ_QUE = os.environ.get("SENDER_RMQ_QUE")
 SETTINGS_R_HOST = os.environ.get("SETTINGS_R_HOST")
 SETTINGS_R_PASSWORD = os.environ.get("SETTINGS_R_PASSWORD")
 SETTINGS_R_DB = os.environ.get("SETTINGS_R_DB")
+
+PRICE_R_HOST = os.environ.get("PRICE_R_HOST")
+PRICE_R_PASSWORD = os.environ.get("PRICE_R_PASSWORD")
+PRICE_R_DB = os.environ.get("PRICE_R_DB")
+

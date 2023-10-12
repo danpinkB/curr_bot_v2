@@ -1,46 +1,36 @@
 import os
 import rpyc
+from obs_shared.connection.management_web_service import MainServiceBase
+
+from const import MANAGEMENT_API_URI, MANAGEMENT_API_PORT
 
 
-class MainServerRpycConnector:
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+class MainServerRpycConnector(MainServiceBase):
 
     def __init__(self):
-        while True:
-            try:
-                self._conn = rpyc.connect(os.environ.get("MAIN_SERVER_HOST"), os.environ.get("MAIN_SERVER_PORT"))
-                return
-            except ConnectionRefusedError:
-                continue
-
-    def get_ex_unactive_pairs(self, ex: str):
-        return self._conn.root.get_ex_unactive_pairs(ex) or "nothing"
-
-    def activate_exchange_pair(self, ex: str, symbol: str) -> str:
-        return self._conn.root.activate_exchange_pair(ex, symbol)
-
-    def deactivate_exchange_pair(self, ex: str, symbol: str) -> str:
-        return self._conn.root.deactivate_exchange_pair(ex, symbol)
+        self._service: MainServiceBase = rpyc.connect(MANAGEMENT_API_URI, MANAGEMENT_API_PORT).root
 
     def deactivate_pair(self, symbol: str) -> str:
-        return self._conn.root.deactivate_pair(symbol)
+        return self._service.deactivate_pair(symbol)
 
     def activate_pair(self, symbol: str) -> str:
-        return self._conn.root.activate_exchange_pair(symbol)
+        return self._service.activate_pair(symbol)
 
-    def get_exchanges(self):
-        return self._conn.root.get_exchanges()
+    def deactivate_exchange_pair(self, exchange: str, symbol: str) -> str:
+        return self._service.deactivate_exchange_pair(exchange, symbol)
 
-    def start(self) -> str:
-        return self._conn.root.start_parsing()
+    def activate_exchange_pair(self, exchange: str, symbol: str) -> str:
+        return self._service.activate_exchange_pair(exchange, symbol)
 
-    def stop(self) -> str:
-        return self._conn.root.stop_parsing()
+    def get_ex_banned_pairs(self, exchange: str) -> str:
+        return self._service.get_ex_banned_pairs(exchange)
 
     def get_price(self, symbol) -> str:
-        return self._conn.root.get_price(symbol) or "pair isnt active"
+        return self._service.get_price(symbol)
+
+    def get_exchanges(self) -> str:
+        return self._service.get_exchanges()
+
+
+
+    

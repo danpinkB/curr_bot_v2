@@ -1,17 +1,54 @@
 import logging
 import os
 
+from obs_shared.types.management_web_service import MainServiceBase
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+from const import TELEGRAM_BOT_API_TOKEN
 from main_server_connector import MainServerRpycConnector
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-app = ApplicationBuilder().token(os.environ.get("TELEGRAM_BOT_API_TOKEN")).build()
-main_server_connector = MainServerRpycConnector()
-DB_PATH = os.environ.get("DB_PATH")
-PASSWORD = os.environ.get("TELEGRAM_BOT_PASSWORD")
+app = ApplicationBuilder().token(TELEGRAM_BOT_API_TOKEN).build()
+
+
+class TGBotMainService(MainServiceBase):
+    def __init__(self) -> None:
+        self._main_connector = MainServerRpycConnector()
+
+    async def deactivate_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        splitted_data = update.message.text.split(" ")
+        if len(splitted_data) == 2:
+            command, symbol = update.message.text.split(" ")
+            await update.message.reply_text(self._main_connector.deactivate_pair(symbol))
+        if len(splitted_data) == 3:
+            command, ex_name, symbol = update.message.text.split(" ")
+            await update.message.reply_text(self._main_connector.deactivate_exchange_pair(ex_name, symbol))
+        return self._main_connector.deactivate_pair()
+
+    async def activate_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        pass
+
+    async def deactivate_exchange_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        pass
+
+    async def activate_exchange_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        pass
+
+    async def get_ex_banned_pairs(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        command, ex_name = update.message.text.split(" ")
+        await update.message.reply_text(self._main_connector.get_ex_unactive_pairs(ex_name))
+
+    async def get_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        pass
+
+    async def get_exchanges(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        names = self._main_connector.get_exchanges()
+        logging.info(f"names:{names}")
+        await update.message.reply_text(names)
 
 
 def check_user(user_id: int) -> bool:
@@ -31,14 +68,6 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         await update.message.reply_text(main_server_connector.stop())
 
-
-async def get_exchanges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not check_user(update.message.chat_id):
-        await update.message.reply_text("you are not allowed")
-    else:
-        names = main_server_connector.get_exchanges()
-        logging.info(f"names:{names}")
-        await update.message.reply_text(names)
 
 
 async def get_ex_unactive_pairs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -82,6 +111,7 @@ async def password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if password == PASSWORD:
         with open(f"{DB_PATH}/data/users/{update.message.chat_id}", "w"):
             await update.message.reply_text("your welcome")
+
 
 help = """
 /exchanges - get exchanges names\n

@@ -5,19 +5,21 @@ import time
 from _decimal import Decimal
 from datetime import datetime, timezone
 
-from obs_shared.connection import RMQConnection, ActiveSettingsRConnection
+from obs_shared.connection import RMQConnection, ActiveSettingsExchangeRConnection, PriceRConnection
 from obs_shared.types import CalculationPrice, ComparerSettings, CalculationDifference
 from pika import spec
 from pika.adapters.blocking_connection import BlockingChannel
 
 from const import SENDER_RMQ_HOST, SENDER_RMQ_USER, SENDER_RMQ_PASSWORD, CONSUMER_RMQ_PASSWORD, CONSUMER_RMQ_USER, \
-    CONSUMER_RMQ_HOST, CONSUMER_RMQ_QUE, SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, SENDER_RMQ_QUE
+    CONSUMER_RMQ_HOST, CONSUMER_RMQ_QUE, SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, SENDER_RMQ_QUE, \
+    PRICE_R_HOST, PRICE_R_DB, PRICE_R_PASSWORD
 
 icons = ['⚪️', '🔶']
 
-setting_rconn = ActiveSettingsRConnection(SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD)
+setting_rconn = ActiveSettingsExchangeRConnection(SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD)
 consumer = RMQConnection(CONSUMER_RMQ_HOST, CONSUMER_RMQ_USER, CONSUMER_RMQ_PASSWORD)
 sender = RMQConnection(SENDER_RMQ_HOST, SENDER_RMQ_USER, SENDER_RMQ_PASSWORD)
+price_rconn = PriceRConnection(PRICE_R_HOST, PRICE_R_DB, PRICE_R_PASSWORD)
 
 ZERO = Decimal(0)
 groups = [dict(), dict()]

@@ -7,9 +7,6 @@ name = "pypi"
 web3 = "6.5.0"
 python-dotenv = "1.0.0"
 obs_shared={git = "https://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@github.com/danpinkB/currencies_obs_shared.git", editable = true}
-websocket = "*"
-websocket-client = "*"
-python-binance = "*"
 
 [dev-packages]
 
