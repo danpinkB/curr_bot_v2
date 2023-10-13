@@ -1,10 +1,12 @@
 import logging
+from typing import Optional
 
 import rpyc
 from obs_shared.connection import PriceRConnection
 from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
-from obs_shared.connection.management_web_service import MainServiceBase
+
 from obs_shared.types import PriceRow
+from obs_shared.types.management_web_service import MainServiceBase
 from rpyc import ThreadedServer
 
 from src.const import SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, PRICE_R_HOST, PRICE_R_DB, PRICE_R_PASSWORD, \
@@ -12,6 +14,7 @@ from src.const import SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, PRICE
 
 
 class MainService(rpyc.Service, MainServiceBase):
+
     def __init__(self) -> None:
         self._active_settings_rconn = ActiveSettingsManagementRConnection(SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD)
         self._price_rconn = PriceRConnection(PRICE_R_HOST, PRICE_R_DB, PRICE_R_PASSWORD)
@@ -50,6 +53,10 @@ class MainService(rpyc.Service, MainServiceBase):
         for exchange, price in self._price_rconn.get_pair_exchanges_prices(symbol).items():
             res += f"{exchange} : {PriceRow(price)} \n"
         return res
+
+    def get_exchange_price(self, exchange: str, symbol: str) -> str:
+        price = self._price_rconn.get_exchange_pair_price(exchange, symbol)
+        return f"{exchange} : {PriceRow(price)} \n"
 
     def get_exchanges(self) -> str:
         return ", ".join(self._active_settings_rconn.get_exchanges())

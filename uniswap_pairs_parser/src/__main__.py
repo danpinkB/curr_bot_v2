@@ -8,9 +8,9 @@ from obs_shared.types import TokenRow
 from obs_shared.types.pair_row import PairRow
 from obs_shared.utils.erc20_token_utils import get_token_info_from_json
 
-from src.const import SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, INFO_R_HOST, \
-    INFO_R_DB, INFO_R_PASSWORD, STABLES, CHAIN
-
+from src.const import CHAIN
+from src.env import SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, INFO_R_HOST, \
+    INFO_R_DB, INFO_R_PASSWORD, STABLES
 NAME = "UNIv3"
 setting_rconn: ActiveSettingsRConnection = ActiveSettingsRConnection(SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, NAME, 1)
 info_rconn: InfoSettingsRConnection = InfoSettingsRConnection(INFO_R_HOST, INFO_R_DB, INFO_R_PASSWORD, NAME, CHAIN)

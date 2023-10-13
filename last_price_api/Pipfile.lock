@@ -911,7 +911,7 @@
         "obs-shared": {
             "editable": true,
             "git": "https://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@github.com/danpinkB/currencies_obs_shared.git",
-            "ref": "cd711da00261c4a723f2e2790091b6b5f3e0a95a"
+            "ref": "88a1e1a23ccb0f2d8a5b50b70321e9f9d9c99688"
         },
         "parsimonious": {
             "hashes": [

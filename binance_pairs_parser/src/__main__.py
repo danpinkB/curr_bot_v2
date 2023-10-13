@@ -5,7 +5,7 @@ from typing import Set
 import requests
 from obs_shared.connection import ActiveSettingsRConnection, InfoSettingsRConnection
 
-from src.const import SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, BINANCE_API, DAILY_RATE, INFO_R_HOST, \
+from src.env import SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, BINANCE_API, DAILY_RATE, INFO_R_HOST, \
     INFO_R_DB, INFO_R_PASSWORD, RESIDENT_SLEEPER_DELAY
 
 NAME = "BIN"

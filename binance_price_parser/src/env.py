@@ -2,8 +2,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-RESIDENT_SLEEPER_DELAY = float(os.environ.get("RESIDENT_SLEEPER_DELAY"))
-
 SETTINGS_R_HOST = os.environ.get("SETTINGS_R_HOST")
 SETTINGS_R_PASSWORD = os.environ.get("SETTINGS_R_PASSWORD")
 SETTINGS_R_DB = os.environ.get("SETTINGS_R_DB")

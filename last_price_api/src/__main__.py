@@ -1,4 +1,3 @@
-import ast
 import logging
 import os
 import time
@@ -10,7 +9,7 @@ from obs_shared.types import CalculationPrice, ComparerSettings, CalculationDiff
 from pika import spec
 from pika.adapters.blocking_connection import BlockingChannel
 
-from const import SENDER_RMQ_HOST, SENDER_RMQ_USER, SENDER_RMQ_PASSWORD, CONSUMER_RMQ_PASSWORD, CONSUMER_RMQ_USER, \
+from src.env import SENDER_RMQ_HOST, SENDER_RMQ_USER, SENDER_RMQ_PASSWORD, CONSUMER_RMQ_PASSWORD, CONSUMER_RMQ_USER, \
     CONSUMER_RMQ_HOST, CONSUMER_RMQ_QUE, SETTINGS_R_HOST, SETTINGS_R_DB, SETTINGS_R_PASSWORD, SENDER_RMQ_QUE, \
     PRICE_R_HOST, PRICE_R_DB, PRICE_R_PASSWORD
 

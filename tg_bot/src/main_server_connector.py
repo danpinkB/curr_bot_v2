@@ -1,8 +1,7 @@
-import os
 import rpyc
-from obs_shared.connection.management_web_service import MainServiceBase
+from obs_shared.types.management_web_service import MainServiceBase
 
-from const import MANAGEMENT_API_URI, MANAGEMENT_API_PORT
+from src.env import MANAGEMENT_API_URI, MANAGEMENT_API_PORT
 
 
 class MainServerRpycConnector(MainServiceBase):
@@ -25,8 +24,11 @@ class MainServerRpycConnector(MainServiceBase):
     def get_ex_banned_pairs(self, exchange: str) -> str:
         return self._service.get_ex_banned_pairs(exchange)
 
-    def get_price(self, symbol) -> str:
+    def get_price(self, symbol: str) -> str:
         return self._service.get_price(symbol)
+
+    def get_exchange_price(self, exchange: str, symbol: str) -> str:
+        return self._service.get_exchange_price(exchange, symbol)
 
     def get_exchanges(self) -> str:
         return self._service.get_exchanges()
