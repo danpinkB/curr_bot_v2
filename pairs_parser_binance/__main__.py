@@ -39,7 +39,7 @@ if __name__ == '__main__':
             setting_rconn.deactivate_pairs(prev_pairs.difference(general_pairs))
             setting_rconn.activate_pairs(general_pairs)
 
-        time.sleep(settings.delay)
+        time.sleep(settings.delay_mills/1000)
 
 
 

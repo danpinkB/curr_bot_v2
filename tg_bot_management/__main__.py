@@ -13,11 +13,12 @@ from tg_bot_management.main_server_connector import MainServerRpycConnector
 
 def check_user(err):
     def decorator(func):
-        def wrapper(*args, **kwargs):
-            update: Update = args[0]
-            if os.path.exists(f"{DB_PATH}/data/users/{update.message.chat_id}"):
-                return func(*args, **kwargs)
-            return err(*args, **kwargs)
+        def wrapper(service, update: Update, context: ContextTypes.DEFAULT_TYPE):
+            print(os.getcwd())
+
+            if os.path.exists(f"{os.getcwd()}/data/users/{update.message.chat_id}"):
+                return func(service, update, context)
+            return err(service, update, context)
 
         return wrapper
     return decorator
@@ -34,12 +35,7 @@ def tg_handler_name(name: str, description: str):
     return decorator
 
 
-async def send_not_allowed_exception(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("you are not allowed")
-
-
 class TGBotMainService(MainServiceBase):
-
     def __init__(self) -> None:
         self._tg_bot_server = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
         self._help_command = list()
@@ -54,6 +50,9 @@ class TGBotMainService(MainServiceBase):
         self._tg_bot_server.add_handler(CommandHandler("help", self.get_help))
         self._tg_bot_server.add_handler(CommandHandler("password", self.authorize))
         self._main_connector = MainServerRpycConnector()
+
+    async def send_not_allowed_exception(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await update.message.reply_text("you are not allowed")
 
     def run_polling(self, *args, **kwargs) -> None:
         self._tg_bot_server.run_polling(*args, **kwargs)
@@ -75,12 +74,13 @@ class TGBotMainService(MainServiceBase):
 
     async def _price_hole(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         split_command_args = update.message.text.split(" ")
+        logging.info(f"command args {split_command_args}")
         if len(split_command_args) == 2:
             command, symbol = update.message.text.split(" ")
-            await update.message.reply_text(self._main_connector.get_price(symbol))
+            await update.message.reply_text(self._main_connector.get_price(symbol+"USDT"))
         if len(split_command_args) == 3:
             command, ex_name, symbol = update.message.text.split(" ")
-            await update.message.reply_text(self._main_connector.activate_exchange_pair(ex_name, symbol))
+            await update.message.reply_text(self._main_connector.activate_exchange_pair(ex_name, symbol+"USDT"))
 
     @tg_handler_name("deactivate", "/deactivate [ex_name] [symbol] - ban ex pair")
     @check_user(send_not_allowed_exception)

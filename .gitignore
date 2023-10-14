@@ -6,8 +6,9 @@ __pycache__/
 *$py.class
 .idea/
 **/.env/
-./data/redis
-./data/rabbitmq
+/data/redis/*
+/data/rabbitmq/*
+!./data/users/*
 **/.idea/
 # C extensions
 *.so

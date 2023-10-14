@@ -34,10 +34,10 @@ if __name__ == '__main__':
             tokens.clear()
             for token in requests.get("https://tokens.coingecko.com/uniswap/all.json").json().get("tokens"):
                 parsed_token = get_token_info_from_json(token, 5)
-                if parsed_token.address not in stable_addresses:
-                    tokens[parsed_token.address] = parsed_token
-                else:
+                if parsed_token.address in stable_addresses:
                     stable_tokens[parsed_token.address] = parsed_token
+                else:
+                    tokens[parsed_token.address] = parsed_token
                 info_rconn.set_token_info(parsed_token)
             stable_val: TokenRow
             token_val: TokenRow
@@ -61,7 +61,7 @@ if __name__ == '__main__':
             setting_rconn.deactivate_ex_pairs(NAME, prev_pairs.difference(general_pairs))
             setting_rconn.activate_ex_pairs(NAME, general_pairs)
 
-        time.sleep(setting_rconn.get_setting().delay)
+        time.sleep(setting_rconn.get_setting().delay_mills/1000)
 
 
 

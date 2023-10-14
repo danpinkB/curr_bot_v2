@@ -47,7 +47,7 @@ class MainService(rpyc.Service, MainServiceBase):
         return ", ".join(self._active_settings_rconn.get_exchange_banned_pairs(exchange))
 
     def get_price(self, symbol) -> str:
-        res = ""
+        res = "PRICES: \n"
         symbol = symbol + "USDT"
         for exchange, price in self._price_rconn.get_pair_exchanges_prices(symbol).items():
             res += f"{exchange} : {price.to_printable_str()} \n"

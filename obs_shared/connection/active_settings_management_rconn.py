@@ -61,11 +61,11 @@ class ActiveSettingsManagementRConnection(BaseRconn):
         if len(settings) == 0:
             self.set_settings(ComparerSettings(
                 percent=0.5,
-                delay=0.2,
+                delay_mills=200,
                 rvolume=10000,
                 mdelay=60*2
             ))
-        return ComparerSettings.from_row(tuple[str, str, int, str](settings.values()))
+        return ComparerSettings.from_row(tuple[str, str, str, str](settings.values()))
 
     def set_setting(self, setting_name: str, setting_value: str) -> None:
         if setting_name in ComparerSettings.keys():
@@ -74,7 +74,7 @@ class ActiveSettingsManagementRConnection(BaseRconn):
     def set_settings(self, settings: ComparerSettings) -> None:
         with self._conn.pipeline() as pipe:
             pipe.hset(SETTINGS_KEY, "percent", str(settings.percent))
-            pipe.hset(SETTINGS_KEY, "delay", str(settings.delay))
+            pipe.hset(SETTINGS_KEY, "delay_mills", str(settings.delay_mills))
             pipe.hset(SETTINGS_KEY, "rvolume", str(settings.rvolume))
             pipe.hset(SETTINGS_KEY, "mdelay", str(settings.mdelay))
             pipe.execute()

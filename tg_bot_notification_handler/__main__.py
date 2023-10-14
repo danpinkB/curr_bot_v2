@@ -12,10 +12,10 @@ from obs_shared.connection.active_settings_management_rconn import ActiveSetting
 from obs_shared.connection.rabbit_mq_connection import RMQConnection
 from obs_shared.types.calculation_difference import CalculationDifference
 from tg_bot_notification_handler.env import TELEGRAM_BOT_TOKEN, DB_PATH, RABBITMQ_QUE__CONSUMER, \
-    REDIS_DSN__SETTINGS, RMQ_HOST, RMQ_USER, RMQ_PASSWORD
+    REDIS_DSN__SETTINGS, RABBITMQ_DSN__CONSUMER
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
-consumer = RMQConnection(RMQ_HOST, RMQ_USER, RMQ_PASSWORD)
+consumer = RMQConnection(RABBITMQ_DSN__CONSUMER, RABBITMQ_QUE__CONSUMER)
 messages: Dict[str, float] = dict()
 
 setting_rconn: ActiveSettingsManagementRConnection = ActiveSettingsManagementRConnection(REDIS_DSN__SETTINGS)

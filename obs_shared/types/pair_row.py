@@ -10,10 +10,10 @@ class PairRow(NamedTuple):
     symbol: str
     token0: ChecksumAddress
     token1: ChecksumAddress
-    chain: int
+    chain: str
 
     @staticmethod
-    def from_row(row: Tuple[str, str, str, int]) -> 'PairRow':
+    def from_row(row: Tuple[str, str, str, str]) -> 'PairRow':
         return PairRow(
             symbol=row[0],
             token0=to_checksum_address(row[1]),
@@ -28,6 +28,6 @@ class PairRow(NamedTuple):
     def to_string(self) -> str:
         return str(self.to_row())
 
-    def to_row(self) -> Tuple[str, str, str, int]:
+    def to_row(self) -> Tuple[str, str, str, str]:
         return self.symbol, str(self.token0), str(self.token1), self.chain
 

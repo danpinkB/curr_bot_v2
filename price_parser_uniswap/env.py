@@ -10,8 +10,6 @@ REDIS_DSN__SYNC = os.environ.get("REDIS_DSN__SYNC")
 REDIS_DSN__INFO = os.environ.get("REDIS_DSN__INFO")
 
 
-RMQ_HOST = os.environ.get("RMQ_HOST")
-RMQ_USER = os.environ.get("RMQ_USER")
-RMQ_PASSWORD = os.environ.get("RMQ_PASSWORD")
+RABBITMQ_DSN__SENDER = os.environ.get("RABBITMQ_DSN__SENDER")
 RABBITMQ_QUE__SENDER = os.environ.get("RABBITMQ_QUE__SENDER")
 

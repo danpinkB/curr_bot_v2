@@ -9,16 +9,16 @@ class CalculationPrice(NamedTuple):
     symbol: str
     exchange: str
     price: PriceRow
-    buy: Optional[int]
+    buy: bool
 
     @staticmethod
-    def from_row(data: Tuple[int, str, str, str, Optional[int]]) -> "CalculationPrice":
+    def from_row(data: Tuple[str, str, str, str, Optional[str]]) -> "CalculationPrice":
         return CalculationPrice(
-            group=data[0],
+            group=int(data[0]),
             symbol=data[1],
             exchange=data[2],
             price=PriceRow.from_row(data[3]),
-            buy=data[4]
+            buy=bool(int(data[4])) if data[4] is not None else None
         )
 
     @staticmethod
@@ -28,5 +28,5 @@ class CalculationPrice(NamedTuple):
     def to_bytes(self) -> bytes:
         return bytes(str(self.to_row()), "utf-8")
 
-    def to_row(self) -> Tuple[int, str, str, str, Optional[int]]:
-        return self.group, self.symbol, self.exchange, self.price.to_row(), self.buy
+    def to_row(self) -> Tuple[str, str, str, str, Optional[str]]:
+        return str(self.group), self.symbol, self.exchange, self.price.to_row(), None if self.buy is None else str(int(self.buy))

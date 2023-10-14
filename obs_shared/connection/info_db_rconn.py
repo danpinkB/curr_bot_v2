@@ -1,4 +1,3 @@
-import logging
 from typing import Set, Optional
 
 from jinja2 import Template
@@ -75,7 +74,6 @@ class InfoSettingsRConnection(BaseRconn):
     def get_pair_info(self, pair_symbol: str) -> PairRow:
         pair_key = PAIRS_KEY.render(chain=self._chain_key, pair=pair_symbol)
         pair_raw_info = self._conn.hgetall(pair_key)
-        logging.info(f'{pair_symbol} {pair_key} {pair_raw_info}')
         return PairRow.from_row(tuple[str, str, str, int](pair_raw_info.values()))
 
     @staticmethod

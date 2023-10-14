@@ -7,7 +7,7 @@ from pika import spec
 from pika.adapters.blocking_connection import BlockingChannel
 
 from last_price_api.env import REDIS_DSN__PRICE, REDIS_DSN__SETTINGS, \
-    RABBITMQ_QUE__SENDER, RABBITMQ_QUE__CONSUMER, RMQ_HOST, RMQ_USER, RMQ_PASSWORD
+    RABBITMQ_QUE__SENDER, RABBITMQ_QUE__CONSUMER, RABBITMQ_DSN__SENDER, RABBITMQ_DSN__CONSUMER
 from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
 from obs_shared.connection.price_db_rconn import PriceRConnection
 from obs_shared.connection.rabbit_mq_connection import RMQConnection
@@ -18,8 +18,8 @@ from obs_shared.types.comparer_settings import ComparerSettings
 icons = ['⚪️', '🔶']
 
 setting_rconn = ActiveSettingsManagementRConnection(REDIS_DSN__SETTINGS)
-consumer = RMQConnection(RMQ_HOST, RMQ_USER, RMQ_PASSWORD)
-sender = RMQConnection(RMQ_HOST, RMQ_USER, RMQ_PASSWORD)
+consumer = RMQConnection(RABBITMQ_DSN__CONSUMER, RABBITMQ_QUE__CONSUMER)
+sender = RMQConnection(RABBITMQ_DSN__SENDER, RABBITMQ_QUE__SENDER)
 price_rconn = PriceRConnection(REDIS_DSN__PRICE)
 
 ZERO = Decimal(0)

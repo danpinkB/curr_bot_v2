@@ -28,9 +28,7 @@ services:
     environment:
       REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
 
-      RMQ_HOST: rmq
-      RMQ_USER: ${RMQ_USER}
-      RMQ_PASSWORD: ${RMQ_PASSWORD}
+      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
       RABBITMQ_QUE__SENDER: 'price'
     depends_on:
       - rmq
@@ -42,10 +40,10 @@ services:
     container_name: last_price_api
     restart: unless-stopped
     environment:
-      RMQ_HOST: rmq
-      RMQ_USER: ${RMQ_USER}
-      RMQ_PASSWORD: ${RMQ_PASSWORD}
+      RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
       RABBITMQ_QUE__CONSUMER : 'price'
+
+      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
       RABBITMQ_QUE__SENDER : 'notification'
 
       REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
@@ -75,7 +73,7 @@ services:
   # TG_BOT
   tg_bot_management:
     volumes:
-      - ${PWD}/data:/app/data
+      - ${PWD}/data/users:/docker_app/data/users
     <<: *common-docker-image
     command: ["python", "-m", "tg_bot_management"]
     #container_name: tg_bot_management
@@ -93,7 +91,7 @@ services:
   # TG_NOTIFICATION_HANDLER
   tg_bot_notification_handler:
     volumes:
-      - ${PWD}/data:/app/data
+      - ${PWD}/data/users:/docker_app/data/users
     <<: *common-docker-image
     command: ["python", "-m", "tg_bot_notification_handler"]
     container_name: tg_bot_notification_handler
@@ -102,9 +100,7 @@ services:
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
 
-      RMQ_HOST: rmq
-      RMQ_USER: ${RMQ_USER}
-      RMQ_PASSWORD: ${RMQ_PASSWORD}
+      RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
       RABBITMQ_QUE__CONSUMER: 'notification'
 
       REDIS_DSN__SETTINGS: ${REDIS_DSN__SETTINGS}
@@ -157,31 +153,27 @@ services:
       REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
       REDIS_DSN__INFO : ${REDIS_DSN__INFO}
 
-      RMQ_HOST : rmq
-      RMQ_USER : ${RMQ_USER}
-      RMQ_PASSWORD : ${RMQ_PASSWORD}
+      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
       RABBITMQ_QUE__SENDER : 'price'
     depends_on:
       - settings_rhost
       - rmq
 
   settings_rhost:
-    container_name: settings_rhost
+    image: 'redislabs/redismod'
     volumes:
       - ${PWD}/data/redis:/data
-    image: 'redislabs/redismod'
+    container_name: settings_rhost
     restart: always
-    ports:
-      - "6379:6379"
   rmq:
-    volumes:
-      - ${PWD}/data/rabbitmq/data:/bitnami/rabbitmq/mnesia
     image: 'rabbitmq:3-management'
-    
+    volumes:
+      - ${PWD}/data/rabbitmq/data:/var/lib/rabbitmq
     restart: always
+    container_name: rmq
     environment:
-      - RABBITMQ_DEFAULT_USER=${RMQ_USER}
-      - RABBITMQ_DEFAULT_PASS=${RMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
       interval: 30s

@@ -1,9 +1,7 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-RMQ_HOST = os.environ.get("RMQ_HOST")
-RMQ_USER = os.environ.get("RMQ_USER")
-RMQ_PASSWORD = os.environ.get("RMQ_PASSWORD")
+RABBITMQ_DSN__CONSUMER = os.environ.get("RABBITMQ_DSN__CONSUMER")
 RABBITMQ_QUE__CONSUMER = os.environ.get("RABBITMQ_QUE__CONSUMER")
 
 TELEGRAM_BOT_PASSWORD = os.environ.get("TELEGRAM_BOT_PASSWORD")

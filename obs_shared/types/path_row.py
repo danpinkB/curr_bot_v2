@@ -10,14 +10,14 @@ class PathRowChain(NamedTuple):
     token_to: TokenRow
     fee: int
 
-    type_ = Tuple[TokenRow.type_, TokenRow.type_, int]
+    type_ = Tuple[TokenRow.type_, TokenRow.type_, str]
 
     @staticmethod
-    def from_row(row: Tuple[TokenRow.type_, TokenRow.type_, int]) -> 'PathRowChain':
+    def from_row(row: Tuple[TokenRow.type_, TokenRow.type_, str]) -> 'PathRowChain':
         return PathRowChain(
             token_from=TokenRow.from_row(row[0]),
             token_to=TokenRow.from_row(row[1]),
-            fee=row[2]
+            fee=int(row[2])
         )
 
     @staticmethod
@@ -27,8 +27,8 @@ class PathRowChain(NamedTuple):
     def to_string(self) -> str:
         return str(self.to_row())
 
-    def to_row(self) -> Tuple[TokenRow.type_, TokenRow.type_, int]:
-        return self.token_from.to_row(), self.token_to.to_row(), self.fee
+    def to_row(self) -> Tuple[TokenRow.type_, TokenRow.type_, str]:
+        return self.token_from.to_row(), self.token_to.to_row(), str(self.fee)
 
 
 class PathRow(NamedTuple):
