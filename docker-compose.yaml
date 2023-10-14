@@ -1,0 +1,193 @@
+version: "3.8"
+
+x-common-docker-image: &common-docker-image
+  image: common-docker-image
+  build:
+    context: .
+    dockerfile: ./Dockerfile
+
+services:
+  # BINANCE_PAIRS
+  pairs_parser_binance:
+    <<: *common-docker-image
+    command: ["python", "-m", "pairs_parser_binance"]
+    container_name: pairs_parser_binance
+    restart: unless-stopped
+    environment:
+      BINANCE_API: ${BINANCE_API}
+      REDIS_DSN__INFO: ${REDIS_DSN__INFO}
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+    depends_on:
+      - settings_rhost
+  # BINANCE_PRICE
+  price_parser_binance:
+    <<: *common-docker-image
+    command: ["python", "-m", "price_parser_binance"]
+    container_name: price_parser_binance
+    restart: unless-stopped
+    environment:
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+
+      RMQ_HOST: rmq
+      RMQ_USER: ${RMQ_USER}
+      RMQ_PASSWORD: ${RMQ_PASSWORD}
+      RABBITMQ_QUE__SENDER: 'price'
+    depends_on:
+      - rmq
+      - settings_rhost
+  # LAST_PRICE_API
+  last_price_api:
+    <<: *common-docker-image
+    command: ["python", "-m", "last_price_api"]
+    container_name: last_price_api
+    restart: unless-stopped
+    environment:
+      RMQ_HOST: rmq
+      RMQ_USER: ${RMQ_USER}
+      RMQ_PASSWORD: ${RMQ_PASSWORD}
+      RABBITMQ_QUE__CONSUMER : 'price'
+      RABBITMQ_QUE__SENDER : 'notification'
+
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+    depends_on:
+      - rmq
+      - settings_rhost
+  # MANAGEMENT_API
+  management_api:
+    <<: *common-docker-image
+    command: ["python", "-m", "management_api"]
+    container_name: management_api
+    restart: unless-stopped
+    environment:
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+      MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
+
+    healthcheck:
+      test: [ "CMD", "python", "healthcheck.py" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      - settings_rhost
+  # TG_BOT
+  tg_bot_management:
+    volumes:
+      - ${PWD}/data:/app/data
+    <<: *common-docker-image
+    command: ["python", "-m", "tg_bot_management"]
+    #container_name: tg_bot_management
+    restart: unless-stopped
+    environment:
+      MANAGEMENT_API_URI: management_api
+      MANAGEMENT_API_PORT: ${MANAGEMENT_API_PORT}
+
+      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+
+      DB_PATH: ""
+    depends_on:
+      - management_api
+  # TG_NOTIFICATION_HANDLER
+  tg_bot_notification_handler:
+    volumes:
+      - ${PWD}/data:/app/data
+    <<: *common-docker-image
+    command: ["python", "-m", "tg_bot_notification_handler"]
+    container_name: tg_bot_notification_handler
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+
+      RMQ_HOST: rmq
+      RMQ_USER: ${RMQ_USER}
+      RMQ_PASSWORD: ${RMQ_PASSWORD}
+      RABBITMQ_QUE__CONSUMER: 'notification'
+
+      REDIS_DSN__SETTINGS: ${REDIS_DSN__SETTINGS}
+      DB_PATH: ""
+    depends_on:
+      - rmq
+  # UNI_PAIRS_PARSER
+  pairs_parser_uniswap:
+    <<: *common-docker-image
+    command: ["python", "-m", "pairs_parser_uniswap"]
+    container_name: pairs_parser_uniswap
+    restart: unless-stopped
+    environment:
+      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+    depends_on:
+      - settings_rhost
+  # UNI_PATH_PARSER
+  path_parser_uniswap:
+    image: path_parser_uniswap
+#    build:
+#      context: .
+#      dockerfile: ./path_parser_uniswap/Dockerfile
+    command: ["python", "-m", "path_parser_uniswap"]
+    container_name: path_parser_uniswap
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    environment:
+      JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
+      REDIS_DSN__PATH : ${REDIS_DSN__PATH}
+      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
+    depends_on:
+      - settings_rhost
+  # UNI_PRICE_PARSER
+  price_parser_uniswap:
+    <<: *common-docker-image
+    command: ["python", "-m", "price_parser_uniswap"]
+    container_name: price_parser_uniswap
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    environment:
+      JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
+      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
+      REDIS_DSN__PATH : ${REDIS_DSN__PATH}
+      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
+      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
+
+      RMQ_HOST : rmq
+      RMQ_USER : ${RMQ_USER}
+      RMQ_PASSWORD : ${RMQ_PASSWORD}
+      RABBITMQ_QUE__SENDER : 'price'
+    depends_on:
+      - settings_rhost
+      - rmq
+
+  settings_rhost:
+    container_name: settings_rhost
+    volumes:
+      - ${PWD}/data/redis:/data
+    image: 'redislabs/redismod'
+    restart: always
+    ports:
+      - "6379:6379"
+  rmq:
+    volumes:
+      - ${PWD}/data/rabbitmq/data:/bitnami/rabbitmq/mnesia
+    image: 'rabbitmq:3-management'
+    
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RMQ_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+# regular expression for intelij ---->>>> \= os\.environ\.get\("\w*"\) replace ----->>>>>: \${}
