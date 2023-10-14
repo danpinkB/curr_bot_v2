@@ -19,7 +19,7 @@ price_sender: RMQConnection = RMQConnection(RABBITMQ_DSN__SENDER, RABBITMQ_QUE__
 def handle_socket_message(msg: Dict):
     data = msg.get("data")
     if data is not None:
-        logging.info(data)
+        # logging.info(data)
         pair_symbol = data['s']
         price = PriceRow.from_row(data['b'])
         calc_entity = CalculationPrice(

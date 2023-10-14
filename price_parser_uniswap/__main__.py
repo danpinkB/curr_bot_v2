@@ -73,7 +73,7 @@ def parse_path_price(
         total_token += amount
         amount = 0
     if is_buy:
-        price = 1 / (total / token0.decimals) / (total_token / token1.decimals)
+        price = (total / token0.decimals) / (total_token / token1.decimals)
     else:
         price = (total / token1.decimals) / (total_token / token0.decimals)
     return price
@@ -93,7 +93,7 @@ def _calc_price_data(pair_symbol: str, type_: str, delay: int):
         token0 = info_rconn.get_token_info_by_address(pair_row.token0)
         token1 = info_rconn.get_token_info_by_address(pair_row.token1)
         try:
-            price = parse_path_price(token0, token1, is_buy, path)
+            price = parse_path_price(token1, token0, is_buy, path) if is_buy else parse_path_price(token0, token1, is_buy, path)
             if actual_price is None:
                 actual_price = PriceRow(
                     price=[Decimal(0), Decimal(0)]
