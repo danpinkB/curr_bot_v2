@@ -1,11 +1,12 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Tuple
 
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 from web3._utils.module_testing.go_ethereum_personal_module import PASSWORD
 
+from obs_shared.types.comparer_settings import ComparerSettings
 from obs_shared.types.management_web_service import MainServiceBase
 from tg_bot_management.env import DB_PATH, TELEGRAM_BOT_TOKEN
 from tg_bot_management.main_server_connector import MainServerRpycConnector
@@ -36,6 +37,8 @@ def tg_handler_name(name: str, description: str):
 
 
 class TGBotMainService(MainServiceBase):
+
+
     def __init__(self) -> None:
         self._tg_bot_server = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
         self._help_command = list()
@@ -135,6 +138,29 @@ class TGBotMainService(MainServiceBase):
     @check_user(send_not_allowed_exception)
     async def get_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("\n".join(self._help_command))
+
+    @tg_handler_name("setting", "/setting [setting_name] [setting_value]")
+    @check_user(send_not_allowed_exception)
+    async def set_setting(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        command, setting_name, setting_value = update.message.text.split(" ")
+        await update.message.reply_text(self._main_connector.set_setting(setting_name, setting_value))
+
+    @tg_handler_name("ssettings", "/ssettings [percent] [delay_mills] [rvolume] [mdelay]")
+    @check_user(send_not_allowed_exception)
+    async def set_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        settings = self._main_connector.get_settings()
+        args = update.message.text.split(" ")
+        new_settings = list()
+        old_settings = settings.to_row()
+        for ind_, arg in enumerate(args[1:]):
+            new_settings[ind_] = arg if arg != "-" else old_settings[ind_]
+
+        await update.message.reply_text(self._main_connector.set_settings(ComparerSettings.from_row(tuple[str, str, str, str](new_settings))))
+
+    @tg_handler_name("settings", "/settings - get settings")
+    @check_user(send_not_allowed_exception)
+    async def get_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await update.message.reply_text(self._main_connector.get_settings().to_printable())
 
 
 if __name__ == "__main__":

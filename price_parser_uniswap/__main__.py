@@ -94,6 +94,7 @@ def _calc_price_data(pair_symbol: str, type_: str, delay: int):
         token1 = info_rconn.get_token_info_by_address(pair_row.token1)
         try:
             price = parse_path_price(token1, token0, is_buy, path) if is_buy else parse_path_price(token0, token1, is_buy, path)
+            #logging.info(f"{pair_symbol} PRICE {price}")
             if actual_price is None:
                 actual_price = PriceRow(
                     price=[Decimal(0), Decimal(0)]

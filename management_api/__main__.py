@@ -5,6 +5,7 @@ import rpyc
 from management_api.env import REDIS_DSN__PRICE, REDIS_DSN__SETTINGS, MANAGEMENT_API_PORT
 from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
 from obs_shared.connection.price_db_rconn import PriceRConnection
+from obs_shared.types.comparer_settings import ComparerSettings
 from obs_shared.types.management_web_service import MainServiceBase
 from rpyc import ThreadedServer
 
@@ -48,7 +49,6 @@ class MainService(rpyc.Service, MainServiceBase):
 
     def get_price(self, symbol) -> str:
         res = "PRICES: \n"
-        symbol = symbol + "USDT"
         for exchange, price in self._price_rconn.get_pair_exchanges_prices(symbol).items():
             res += f"{exchange} : {price.to_printable_str()} \n"
         return res
@@ -59,6 +59,17 @@ class MainService(rpyc.Service, MainServiceBase):
 
     def get_exchanges(self) -> str:
         return ", ".join(self._active_settings_rconn.get_exchanges())
+
+    def set_setting(self, setting_name: str, setting_value: str) -> str:
+        self._active_settings_rconn.set_setting(setting_name, setting_value)
+        return "OK"
+
+    def set_settings(self, settings: ComparerSettings) -> str:
+        self._active_settings_rconn.set_settings(settings)
+        return "OK"
+
+    def get_settings(self) -> ComparerSettings:
+        return self._active_settings_rconn.get_setting()
 
 
 if __name__ == "__main__":

@@ -31,8 +31,8 @@ web3_connection = web3.Web3(web3.HTTPProvider(JSON_RPC_PROVIDER))
 path_key = Template("{{pair}}_path_{{type}}")
 
 
-def _quote(symbol: str, token0: ChecksumAddress, token1: ChecksumAddress, amount: int, type_: str, protocols: str) -> Optional[PathRow]:
-    command = f'{UNI_CLI_PATH}bin/cli quote-custom --tokenIn {token0} --tokenOut {token1} --amount {amount} --{type_} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols {protocols}'
+def _quote(symbol: str, from_token: ChecksumAddress, to_token: ChecksumAddress, amount: int, type_: str, protocols: str) -> Optional[PathRow]:
+    command = f'{UNI_CLI_PATH}bin/cli quote-custom --tokenIn {from_token} --tokenOut {to_token} --amount {amount} --{type_} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols {protocols}'
     cli_result = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True).communicate()
     logging.info(f"{command}\n{cli_result}")
     try:
@@ -67,6 +67,8 @@ def _quote(symbol: str, token0: ChecksumAddress, token1: ChecksumAddress, amount
 
 def _parse_path_info(pair_symbol: str, type_: str) -> Optional[PathRow]:
     pair_row = info_rconn.get_pair_info(pair_symbol)
+    if type_ == "exactIn":
+        return _quote(pair_symbol, pair_row.token1, pair_row.token0, setting_rconn.get_setting().rvolume, type_, "v3")
     return _quote(pair_symbol, pair_row.token0, pair_row.token1, setting_rconn.get_setting().rvolume, type_, "v3")
 
 

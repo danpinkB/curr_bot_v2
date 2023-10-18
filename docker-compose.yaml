@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     environment:
       REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-
+      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
       RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
       RABBITMQ_QUE__SENDER: 'price'
     depends_on:
@@ -103,6 +103,7 @@ services:
       RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
       RABBITMQ_QUE__CONSUMER: 'notification'
 
+      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
       REDIS_DSN__SETTINGS: ${REDIS_DSN__SETTINGS}
       DB_PATH: ""
     depends_on:
@@ -165,6 +166,8 @@ services:
       - ${PWD}/data/redis:/data
     container_name: settings_rhost
     restart: unless-stopped
+    ports:
+      - "6379:6379"
   rmq:
     image: 'rabbitmq:3-management'
     volumes:
@@ -175,7 +178,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:15672" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:5672" ]
       interval: 30s
       timeout: 10s
       retries: 5

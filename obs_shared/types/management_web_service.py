@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from obs_shared.types.comparer_settings import ComparerSettings
+
 
 class MainServiceBase(ABC):
     @abstractmethod
@@ -33,5 +35,17 @@ class MainServiceBase(ABC):
 
     @abstractmethod
     def get_exchanges(self, *args, **kwargs) -> Optional[str]:
+        pass
+
+    @abstractmethod
+    def set_setting(self, *args, **kwargs) -> str:
+        pass
+
+    @abstractmethod
+    def set_settings(self, *args, **kwargs) -> str:
+        pass
+
+    @abstractmethod
+    def get_settings(self) -> ComparerSettings:
         pass
 

@@ -13,6 +13,7 @@ SETTINGS_KEY = "SETTINGS"
 
 class ActiveSettingsManagementRConnection(BaseRconn):
     EXCHANGES_KEY = "exchanges"
+    GROUPS_KEY = Template("{{group}}_exchanges")
 
     def __init__(self, dns_url: str):
         super().__init__(dns_url)
@@ -78,3 +79,7 @@ class ActiveSettingsManagementRConnection(BaseRconn):
             pipe.hset(SETTINGS_KEY, "rvolume", str(settings.rvolume))
             pipe.hset(SETTINGS_KEY, "mdelay", str(settings.mdelay))
             pipe.execute()
+
+    def get_group_exchanges(self, group: int) -> Set[str]:
+        return self._conn.smembers(self.GROUPS_KEY.render(group=group))
+

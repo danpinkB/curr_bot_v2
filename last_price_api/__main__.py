@@ -38,16 +38,13 @@ def _get_settings() -> ComparerSettings:
 
 def _consume_callback(ch: BlockingChannel, method: spec.Basic.Deliver, properties: spec.BasicProperties, body: bytes):
     calc_price = CalculationPrice.from_bytes(body)
-    group = groups[calc_price.group]
-    # logging.info(f"calc_price message {calc_price}")
-    if group.get(calc_price.symbol) is None:
+    #
+    if groups[calc_price.group].get(calc_price.symbol) is None:
         groups[calc_price.group][calc_price.symbol] = dict()
-
+    groups[calc_price.group][calc_price.symbol][calc_price.exchange] = calc_price.price.price
     if calc_price.group == 0:
-        groups[calc_price.group][calc_price.symbol][calc_price.exchange] = calc_price.price.price
         _compare_dex_with_cexes(calc_price)
     else:
-        groups[calc_price.group][calc_price.symbol][calc_price.exchange] = calc_price.price.price
         _compare_cex_with_dexes(calc_price)
 
 
@@ -94,6 +91,7 @@ def _compare_cex_with_dexes(calc_price: CalculationPrice) -> None:
 
 def send_message_wrapper(icon: str, symbol: str, perc_diff: Decimal, from_ex: str, to_ex: str, from_price: Decimal, to_price: Decimal, now: float) -> None:
     settings_ = _get_settings()
+    logging.info(f"{icon} {symbol}, {from_ex}, {to_ex}, {from_price}, {to_price}, {perc_diff}")
     if perc_diff > settings_.percent:
         diff_model = CalculationDifference(
             ex_from=from_ex,
@@ -105,10 +103,12 @@ def send_message_wrapper(icon: str, symbol: str, perc_diff: Decimal, from_ex: st
             symbol=symbol
         )
         sender.send_message(RABBITMQ_QUE__SENDER, diff_model.to_bytes())
-        logging.info(f"{icon} {symbol}, {from_ex}, {to_ex}, {from_price}, {to_price}, {perc_diff}")
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    for ind_, group_ in enumerate(groups):
+        for ex in setting_rconn.get_group_exchanges(ind_):
+            groups[ind_] = {pair: {ex: price} for pair, price in price_rconn.get_exchange_pairs_prices(ex).items()}
     consumer.consume(RABBITMQ_QUE__CONSUMER, _consume_callback)
 

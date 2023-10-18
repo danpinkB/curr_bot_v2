@@ -14,7 +14,7 @@ from pairs_parser_uniswap.const import CHAIN, STABLES
 from pairs_parser_uniswap.env import REDIS_DSN__INFO, REDIS_DSN__SETTINGS
 
 NAME = "UNIv3"
-setting_rconn: ActiveSettingsExchangeRConnection = ActiveSettingsExchangeRConnection(REDIS_DSN__SETTINGS, NAME, 1)
+setting_rconn: ActiveSettingsExchangeRConnection = ActiveSettingsExchangeRConnection(REDIS_DSN__SETTINGS, NAME, 0)
 info_rconn: InfoSettingsRConnection = InfoSettingsRConnection(REDIS_DSN__INFO, NAME, CHAIN)
 
 if __name__ == '__main__':

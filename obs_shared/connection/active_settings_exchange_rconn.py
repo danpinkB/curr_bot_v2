@@ -4,8 +4,6 @@ from jinja2 import Template
 
 from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
 
-GROUPS_KEY = Template("{{group}}_exchanges")
-
 
 class ActiveSettingsExchangeRConnection(ActiveSettingsManagementRConnection):
 
@@ -20,7 +18,7 @@ class ActiveSettingsExchangeRConnection(ActiveSettingsManagementRConnection):
 
     def add_exchange(self, exchange: str, group: int) -> None:
         with self._conn.pipeline() as pipe:
-            pipe.sadd(GROUPS_KEY.render(group=group), exchange)
+            pipe.sadd(ActiveSettingsManagementRConnection.GROUPS_KEY.render(group=group), exchange)
             pipe.sadd(self.EXCHANGES_KEY, exchange)
             pipe.execute()
 
@@ -39,5 +37,4 @@ class ActiveSettingsExchangeRConnection(ActiveSettingsManagementRConnection):
     def get_banned_pairs(self) -> Set[str]:
         return self.get_exchange_banned_pairs(self._exchange)
 
-    def get_group_exchanges(self, group: int) -> Set[str]:
-        return self._conn.smembers(GROUPS_KEY.render(group=group))
+
