@@ -52,8 +52,7 @@ if __name__ == '__main__':
     try:
         while True:
             new_streams = setting_rconn.get_pairs()
-
-            if len(streams.difference(new_streams)) > 0:
+            if len(streams.symmetric_difference(new_streams)) > 0:
                 if twm.is_alive():
                     twm.stop()
                     twm.join()

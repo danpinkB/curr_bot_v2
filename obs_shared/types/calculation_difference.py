@@ -1,5 +1,4 @@
 import ast
-import json
 from _decimal import Decimal
 from typing import NamedTuple, Tuple
 
@@ -33,10 +32,8 @@ class CalculationDifference(NamedTuple):
         return bytes(str(self.to_row()), "utf-8")
 
     def to_printable_str(self) -> str:
-        return f"{self.symbol} \n"\
-                f"{self.icon} {self.ex_from} -> {self.ex_to} \n"\
-                f"{round(self.price_from, 8)} -> {round(self.price_to, 8)} \n"\
-                f"difference: {round(self.diff_percent, 0)} %"
+        return f"{self.icon} {self.symbol}: {self.ex_from} -> {self.ex_to} {round(self.diff_percent, 0)} %\n"\
+                f"{round(self.price_from, 8)} -> {round(self.price_to, 8)} \n"
 
     def to_row(self) -> Tuple[str, str, str, str, str, str, str]:
         return self.icon, self.symbol, self.ex_from, self.ex_to, str(self.price_from), str(self.price_to), str(

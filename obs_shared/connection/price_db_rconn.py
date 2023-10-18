@@ -33,7 +33,7 @@ class PriceRConnection(BaseRconn):
 
     def get_exchange_pair_price(self, ex: str, pair_symbol: str) -> Optional[PriceRow]:
         price = self._conn.hget(PRICE_HASH_TABLE_KEY, EXCHANGE_PAIR_PRICE_KEY.render(exchange=ex, pair=pair_symbol))
-        logging.info(f"price {price} {ex} {pair_symbol}")
+        #logging.info(f"price {price} {ex} {pair_symbol}")
         return PriceRow.from_row(price) if price is not None else None
 
     def get_pair_exchanges_prices(self, pair_symbol: str) -> Dict[str, Optional[PriceRow]]:

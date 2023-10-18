@@ -38,6 +38,7 @@ def _get_settings() -> ComparerSettings:
 
 def _consume_callback(ch: BlockingChannel, method: spec.Basic.Deliver, properties: spec.BasicProperties, body: bytes):
     calc_price = CalculationPrice.from_bytes(body)
+    logging.info(f"price {calc_price}")
     #
     if groups[calc_price.group].get(calc_price.symbol) is None:
         groups[calc_price.group][calc_price.symbol] = dict()

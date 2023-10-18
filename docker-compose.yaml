@@ -126,10 +126,10 @@ services:
 #      context: .
 #      dockerfile: ./path_parser_uniswap/Dockerfile
     command: ["python", "-m", "path_parser_uniswap"]
-    container_name: path_parser_uniswap
+    #container_name: path_parser_uniswap
     restart: unless-stopped
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
       REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
@@ -145,7 +145,7 @@ services:
     #container_name: price_parser_uniswap
     restart: unless-stopped
     deploy:
-      replicas: 1
+      replicas: 3
     environment:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
       REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}

@@ -80,10 +80,10 @@ class TGBotMainService(MainServiceBase):
         logging.info(f"command args {split_command_args}")
         if len(split_command_args) == 2:
             command, symbol = update.message.text.split(" ")
-            await update.message.reply_text(self._main_connector.get_price(symbol+"USDT"))
+            await update.message.reply_text(self._main_connector.get_price(symbol))
         if len(split_command_args) == 3:
             command, ex_name, symbol = update.message.text.split(" ")
-            await update.message.reply_text(self._main_connector.activate_exchange_pair(ex_name, symbol+"USDT"))
+            await update.message.reply_text(self._main_connector.activate_exchange_pair(ex_name, symbol))
 
     @tg_handler_name("deactivate", "/deactivate [ex_name] [symbol] - ban ex pair")
     @check_user(send_not_allowed_exception)

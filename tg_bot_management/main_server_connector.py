@@ -11,25 +11,25 @@ class MainServerRpycConnector(MainServiceBase):
         self._service: MainServiceBase = rpyc.connect(MANAGEMENT_API_URI, MANAGEMENT_API_PORT).root
 
     def deactivate_pair(self, symbol: str) -> str:
-        return self._service.deactivate_pair(symbol)
+        return self._service.deactivate_pair(symbol+"USDT")
 
     def activate_pair(self, symbol: str) -> str:
-        return self._service.activate_pair(symbol)
+        return self._service.activate_pair(symbol+"USDT")
 
     def deactivate_exchange_pair(self, exchange: str, symbol: str) -> str:
-        return self._service.deactivate_exchange_pair(exchange, symbol)
+        return self._service.deactivate_exchange_pair(exchange, symbol+"USDT")
 
     def activate_exchange_pair(self, exchange: str, symbol: str) -> str:
-        return self._service.activate_exchange_pair(exchange, symbol)
+        return self._service.activate_exchange_pair(exchange, symbol+"USDT")
 
     def get_ex_banned_pairs(self, exchange: str) -> str:
         return self._service.get_ex_banned_pairs(exchange)
 
     def get_price(self, symbol: str) -> str:
-        return self._service.get_price(symbol)
+        return self._service.get_price(symbol+"USDT")
 
     def get_exchange_price(self, exchange: str, symbol: str) -> str:
-        return self._service.get_exchange_price(exchange, symbol)
+        return self._service.get_exchange_price(exchange, symbol+"USDT")
 
     def get_exchanges(self) -> str:
         return self._service.get_exchanges()
