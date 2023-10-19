@@ -2,10 +2,12 @@ import logging
 import time
 from _decimal import Decimal
 from datetime import datetime, timezone
+from typing import Dict, Tuple, Optional
 
 from pika import spec
 from pika.adapters.blocking_connection import BlockingChannel
 
+from last_price_api.const import Exchange, Instrument, InstrumentPrice, LastPriceMessage, INSTRUMENTS, EXCHANGES
 from last_price_api.env import REDIS_DSN__PRICE, REDIS_DSN__SETTINGS, \
     RABBITMQ_QUE__SENDER, RABBITMQ_QUE__CONSUMER, RABBITMQ_DSN__SENDER, RABBITMQ_DSN__CONSUMER
 from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
@@ -25,6 +27,12 @@ price_rconn = PriceRConnection(REDIS_DSN__PRICE)
 ZERO = Decimal(0)
 groups = [dict(), dict()]
 
+INSTRUMENT_PRICES: Dict[Instrument, Dict[Exchange, Optional[InstrumentPrice]]] = dict()
+for i in INSTRUMENTS:
+    INSTRUMENT_PRICES[i] = dict()
+    for e in EXCHANGES:
+        INSTRUMENT_PRICES[i][e] = None
+
 settings = setting_rconn.get_setting()
 settings_last_parsed_time = time.time()
 
@@ -37,16 +45,12 @@ def _get_settings() -> ComparerSettings:
 
 
 def _consume_callback(ch: BlockingChannel, method: spec.Basic.Deliver, properties: spec.BasicProperties, body: bytes):
-    calc_price = CalculationPrice.from_bytes(body)
-    logging.info(f"price {calc_price}")
-    #
-    if groups[calc_price.group].get(calc_price.symbol) is None:
-        groups[calc_price.group][calc_price.symbol] = dict()
-    groups[calc_price.group][calc_price.symbol][calc_price.exchange] = calc_price.price.price
-    if calc_price.group == 0:
-        _compare_dex_with_cexes(calc_price)
-    else:
-        _compare_cex_with_dexes(calc_price)
+    msg = LastPriceMessage.from_bytes(body)
+    INSTRUMENT_PRICES[msg.instrument][msg.exchange] = msg.price
+
+    _compare_dex_with_cexes(calc_price)
+
+    _compare_cex_with_dexes(calc_price)
 
 
 def _compare_dex_with_cexes(calc_price: CalculationPrice):
