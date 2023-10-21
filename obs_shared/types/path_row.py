@@ -31,7 +31,8 @@ class PathRowChain(NamedTuple):
         return self.token_from.to_row(), self.token_to.to_row(), str(self.fee)
 
 
-class PathRow(NamedTuple):
+class PathEntity(NamedTuple):
+
     chains: Dict[str, List[PathRowChain]]
 
     @staticmethod
