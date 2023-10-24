@@ -6,9 +6,9 @@ __pycache__/
 *$py.class
 .idea/
 **/.env/
-/data/redis/*
-/data/rabbitmq/*
-!./data/users/*
+/.var/redis/*
+/.var/rabbitmq/*
+!.var/users/*
 **/.idea/
 # C extensions
 *.so
@@ -135,11 +135,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
+# Spyder project db_settings
 .spyderproject
 .spyproject
 
-# Rope project settings
+# Rope project db_settings
 .ropeproject
 
 # mkdocs documentation

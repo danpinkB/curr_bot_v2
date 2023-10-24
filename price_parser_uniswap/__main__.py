@@ -1,127 +1,112 @@
+import asyncio
 import logging
-import time
-import traceback
+import re
+import shlex
+import subprocess
 from _decimal import Decimal
+from typing import Optional, NamedTuple, Callable, Any
 
 import web3
+from eth_typing import ChecksumAddress
 from jinja2 import Template
-from web3.exceptions import ContractLogicError
 
-from obs_shared.connection.active_settings_exchange_rconn import ActiveSettingsExchangeRConnection
-from obs_shared.connection.info_db_rconn import InfoSettingsRConnection
-from obs_shared.connection.path_db_rconn import PathRConnection
-from obs_shared.connection.price_db_rconn import PriceRConnection
-from obs_shared.connection.rabbit_mq_connection import RMQConnection
-from obs_shared.connection.sync_db_rconn import SyncRConnection
-from obs_shared.static import uni_v3_quoter_abi
-from obs_shared.types.calculation_price import CalculationPrice
-from obs_shared.types.path_row import PathRow, PathRowChain
-from obs_shared.types.price_row import PriceRow
-from obs_shared.types.token_row import TokenRow
-from price_parser_uniswap.const import UNI_V3_QUOTER_ADDRESS, CHAIN
-from price_parser_uniswap.env import REDIS_DSN__INFO, REDIS_DSN__PATH, REDIS_DSN__PRICE, JSON_RPC_PROVIDER, \
-    REDIS_DSN__SYNC, RABBITMQ_QUE__SENDER, REDIS_DSN__SETTINGS, RABBITMQ_DSN__SENDER
+from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
+from abstract.exchange import Exchange
+from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams, Instrument
+from message_broker.message_broker import message_broker
+from message_broker.topics.price import LastPriceMessage, InstrumentPrice, publish_price_topic
+from price_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
 
 NAME = "UNIv3"
-_key = Template("{{pair}}_price_{{type}}")
 
-setting_rconn: ActiveSettingsExchangeRConnection = ActiveSettingsExchangeRConnection(REDIS_DSN__SETTINGS, NAME, 0)
-info_rconn: InfoSettingsRConnection = InfoSettingsRConnection(REDIS_DSN__INFO, NAME, CHAIN)
-path_rconn: PathRConnection = PathRConnection(REDIS_DSN__PATH)
-price_rconn: PriceRConnection = PriceRConnection(REDIS_DSN__PRICE)
-sync_rconn: SyncRConnection = SyncRConnection(REDIS_DSN__SYNC)
-price_sender: RMQConnection = RMQConnection(RABBITMQ_DSN__SENDER, RABBITMQ_QUE__SENDER)
+web3_connection = web3.Web3(web3.HTTPProvider(JSON_RPC_PROVIDER))
+path_key = Template("{{pair}}_path_{{type}}")
 
-web3_conn = web3.Web3(web3.HTTPProvider(JSON_RPC_PROVIDER))
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|[ \t\n"]')
+
+REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
+INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex:i for i in REQUIRED_INSTRUMENTS}
 
 
-def parse_path_price(
-        token0: TokenRow,
-        token1: TokenRow,
-        is_buy: bool,
-        path: PathRow
-) -> Decimal:
-    fee: int
-    from_: TokenRow
-    to_: TokenRow
-    quoter = web3_conn.eth.contract(UNI_V3_QUOTER_ADDRESS, abi=uni_v3_quoter_abi)
-    amount: int = 0
-    total: int = 0
-    total_token = 0
-    for percent, perc_path in path.chains.items():
-        if is_buy:
-            for path_chain in perc_path:
-                from_ = path_chain.token_from
-                to_ = path_chain.token_to
-                if amount == 0:
-                    amount = int(percent) * int(from_.decimals)
-                    total += amount
-                p = quoter.functions.quoteExactInputSingle(
-                    (from_.address, to_.address, amount, path_chain.fee, 0)).call()
-                amount = p[0]
-        else:
-            for path_chain in reversed(perc_path):
-                from_ = path_chain.token_from
-                to_ = path_chain.token_to
-                if amount == 0:
-                    amount = int(percent) * int(to_.decimals)
-                    total += amount
-                p = quoter.functions.quoteExactOutputSingle(
-                    (from_.address, to_.address, amount, path_chain.fee, 0)).call()
-                amount = p[0]
-
-        total_token += amount
-        amount = 0
-    if is_buy:
-        price = (total / token0.decimals) / (total_token / token1.decimals)
-    else:
-        price = (total / token1.decimals) / (total_token / token0.decimals)
-    return price
+class CLIQuoteUniswap(NamedTuple):
+    best_route: str
+    quote_in: Decimal
+    gas_quote: Decimal
+    gas_usd: Decimal
+    call_data: str
+    block_number: int
 
 
-def _calc_price_data(pair_symbol: str, type_: str, delay: int):
-    sync_key = _key.render(pair=pair_symbol, type=type_)
+class FieldMapper(NamedTuple):
+    field_name: str
+    apply: Callable[[Any], Any]
 
-    if not sync_rconn.is_lock(sync_key):
-        path = path_rconn.get_exchange_pair_path(NAME, pair_symbol, type_)
-        if path is None: return
-        actual_price = price_rconn.get_exchange_pair_price(NAME, pair_symbol)
-        is_buy = type_ == "exactIn"
-        sync_rconn.lock_action(sync_key, delay)
-        pair_row = info_rconn.get_pair_info(pair_symbol)
 
-        token0 = info_rconn.get_token_info_by_address(pair_row.token0)
-        token1 = info_rconn.get_token_info_by_address(pair_row.token1)
-        try:
-            price = parse_path_price(token1, token0, is_buy, path) if is_buy else parse_path_price(token0, token1, is_buy, path)
-            #logging.info(f"{pair_symbol} PRICE {price}")
-            if actual_price is None:
-                actual_price = PriceRow(
-                    price=[Decimal(0), Decimal(0)]
-                )
-            actual_price[is_buy] = price
+mapper = {
+    1: FieldMapper(
+        field_name="best_route",
+        apply=lambda x: x
+    ),
+    5: FieldMapper(
+        field_name="quote_in",
+        apply=lambda x: x
+    ),
+    7: FieldMapper(
+        field_name="gas_quote",
+        apply=lambda x: x[18:]
+    ),
+    8: FieldMapper(
+        field_name="gas_usd",
+        apply=lambda x: x[13:]
+    ),
+    9: FieldMapper(
+        field_name="call_data",
+        apply=lambda x: x[9:]
+    ),
+    12: FieldMapper(
+            field_name="block_number",
+            apply=lambda x: x[12:]
+    )
+}
+cli_height = range(13)
 
-            calc_entity = CalculationPrice(
-                group=0,
-                symbol=pair_symbol,
-                exchange=NAME,
-                price=actual_price,
-                buy=is_buy
-            )
 
-            price_rconn.set_exchange_pair_price(NAME, pair_symbol, actual_price)
-            price_sender.send_message(RABBITMQ_QUE__SENDER, calc_entity.to_bytes())
-        except Exception as ex:
-            logging.error(f"error while trying to parse path {str(path)}")
-            logging.error(traceback.format_exc())
+async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: int, type_: str) -> Optional[CLIQuoteUniswap]:
+    command = f'{UNI_CLI_PATH}bin/cli quote -i {quote} -o {base} --amount {amount} --{type_} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3'
+    args = shlex.split(command)
+    process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    quote = {}
+    for ind in cli_height:
+        line = await process.stdout.readline()
+        if line and mapper.get(ind):
+            quote[mapper[ind].field_name] = mapper[ind].apply(ansi_escape.sub('', line.decode("utf-8")))
+    return CLIQuoteUniswap(**quote)
+
+
+async def main():
+    curr_block_number = 0
+    broker = await message_broker()
+    # await sender.connect()
+    while True:
+        if curr_block_number != connection.eth.block_number:
+            p: DEXExchangeInstrumentParams
+            i: Instrument
+
+            for p, i in INSTRUMENT_ARGUMENTS.items():
+                buy = await _quote(p.base.address, p.quote.address, 10000, "exactIn")
+                sell = await _quote(p.quote.address, p.base.address, 10000, "exactOut")
+
+                await publish_price_topic(broker, LastPriceMessage(
+                    price=InstrumentPrice(buy=buy.quote_in, sell=sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
+                    exchange=Exchange.UNISWAP,
+                    instrument=i
+                ))
+
+            curr_block_number = connection.eth.block_number
 
 
 if __name__ == '__main__':
+    connection = web3.Web3(web3.HTTPProvider(JSON_RPC_PROVIDER))
     logging.basicConfig(level=logging.INFO)
-    while True:
-        delay = setting_rconn.get_setting().delay_mills
-        for pair_symbol in setting_rconn.get_pairs():
-            _calc_price_data(pair_symbol, "exactIn", delay)
-            _calc_price_data(pair_symbol, "exactOut", delay)
-        time.sleep(delay/1000)
-
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

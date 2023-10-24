@@ -1,12 +1,11 @@
-import os
 import unittest
 from _decimal import Decimal
 
 import web3
 
-from obs_shared.static import uni_v3_quoter_abi
-from obs_shared.types.path_row import PathRow, PathRowChain
-from obs_shared.types.token_row import TokenRow
+from net_node import uni_v3_quoter_abi
+from obs_shared.mytypes.path_row import PathRow
+from obs_shared.mytypes.token_row import TokenRow
 from price_parser_uniswap.const import UNI_V3_QUOTER_ADDRESS
 
 web3_conn = web3.Web3(web3.HTTPProvider("http://srv22130.dus4.fastwebserver.de:8545"))
@@ -28,8 +27,8 @@ def parse_path_price(
     for percent, perc_path in path.chains.items():
         if is_buy:
             for path_chain in perc_path:
-                from_ = path_chain.token_from
-                to_ = path_chain.token_to
+                from_ = path_chain.quote
+                to_ = path_chain.base
                 if amount == 0:
                     amount = int(percent) * int(from_.decimals)
                     total += amount
@@ -38,8 +37,8 @@ def parse_path_price(
                 amount = p[0]
         else:
             for path_chain in reversed(perc_path):
-                from_ = path_chain.token_from
-                to_ = path_chain.token_to
+                from_ = path_chain.quote
+                to_ = path_chain.base
                 if amount == 0:
                     amount = int(percent) * int(to_.decimals)
                     total += amount
