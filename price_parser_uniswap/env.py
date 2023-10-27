@@ -2,6 +2,4 @@ import os
 
 JSON_RPC_PROVIDER = os.environ['JSON_RPC_PROVIDER']
 UNI_CLI_PATH = os.environ['UNI_CLI_PATH']
-REDIS_DSN__SETTINGS = os.environ['REDIS_DSN__SETTINGS']
-
 

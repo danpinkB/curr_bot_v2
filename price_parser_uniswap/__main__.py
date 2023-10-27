@@ -79,12 +79,12 @@ async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: Decimal,
     process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     quote = {}
     field_mapper: Optional[FieldMapper]
+
     for line_number in CLI_HEIGHT:
         field_mapper = mapper.get(line_number)
         line = await process.stdout.readline()
         if field_mapper is not None:
             quote[field_mapper.field_name] = field_mapper.apply(ansi_escape.sub('', line.decode("utf-8")))
-    logging.info(quote)
     if len(quote) > 0:
         return CLIQuoteUniswap(amount=amount, **quote)
 
@@ -101,15 +101,19 @@ async def main():
             i: Instrument
 
             for p, i in INSTRUMENT_ARGUMENTS.items():
-                logging.info(i.name)
+                # logging.info(i.name)
                 if not await sync_manager.is_locked(i):
-                    buy = await _quote(p.quote.address, p.base.address, amount, "exactIn")
-                    sell = await _quote(p.quote.address, p.base.address, amount, "exactOut")
-                    await publish_price_topic(broker, LastPriceMessage(
-                        price=InstrumentPrice(buy=amount/buy.quote_in, sell=amount/sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
-                        exchange=Exchange.UNISWAP,
-                        instrument=i
-                    ))
+                    try:
+                        buy = await _quote(p.base.address, p.quote.address, amount, "exactIn")
+                        sell = await _quote(p.quote.address, p.base.address, amount, "exactOut")
+                        await publish_price_topic(broker, LastPriceMessage(
+                            price=InstrumentPrice(buy=amount/buy.quote_in, sell=amount/sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
+                            exchange=Exchange.UNISWAP,
+                            instrument=i
+                        ))
+                    except Exception as ex:
+                        logging.error(ex)
+                        logging.info(i.name)
 
             curr_block_number = connection.eth.block_number
 
