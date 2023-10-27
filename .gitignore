@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-./other_builds/
+external_dependencies/
 ./
 *.py[cod]
 *$py.class

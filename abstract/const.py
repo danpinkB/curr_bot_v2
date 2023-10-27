@@ -35,7 +35,6 @@ class EthTokens(Enum):
     ETH = DEXToken(address=to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"), symbol="ETH", decimals=TokenDecimals.D16.value)
     ARB = DEXToken(address=to_checksum_address("0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1"), symbol="ARB", decimals=TokenDecimals.D16.value)
     BTC = DEXToken(address=to_checksum_address("0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"), symbol="BTC", decimals=TokenDecimals.D8.value)
-    XRP = DEXToken(address=to_checksum_address("0x39fBBABf11738317a448031930706cd3e612e1B9"), symbol="XRP", decimals=TokenDecimals.D16.value)
     SOL = DEXToken(address=to_checksum_address("0xD31a59c85aE9D8edEFeC411D448f90841571b89c"), symbol="SOL", decimals=TokenDecimals.D9.value)
     TON = DEXToken(address=to_checksum_address("0x582d872A1B094FC48F5DE31D3B73F2D9bE47def1"), symbol="TON", decimals=TokenDecimals.D9.value)
     TRX = DEXToken(address=to_checksum_address("0x50327c6c5a14DCaDE707ABad2E27eB517df87AB5"), symbol="TRX", decimals=TokenDecimals.D9.value)
@@ -67,7 +66,6 @@ class BinanceTokens(Enum):
     ETH = CEXToken(symbol="ETH")
     ARB = CEXToken(symbol="ARB")
     BTC = CEXToken(symbol="BTC")
-    XRP = CEXToken(symbol="XRP")
     SOL = CEXToken(symbol="SOL")
     TON = CEXToken(symbol="TON")
     TRX = CEXToken(symbol="TRX")
@@ -99,13 +97,12 @@ INSTRUMENTS = MappingProxyType({
     ExchangeInstrument(Exchange.UNISWAP, Instrument.ETH__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.ETH.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.ARB__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.ARB.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.BTC__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.BTC.value, EthTokens.USDT.value)),
-    ExchangeInstrument(Exchange.UNISWAP, Instrument.XRP__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.XRP.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.SOL__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.SOL.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.TON__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.TON.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.TRX__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.TRX.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.MATIC__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.MATIC.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.BADGER__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.BADGER.value, EthTokens.USDT.value)),
-    ExchangeInstrument(Exchange.UNISWAP, Instrument.SUSHI__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.SUSHI.value, EthTokens.USDT.value)),
+    # ExchangeInstrument(Exchange.UNISWAP, Instrument.SUSHI__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.SUSHI.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.INJ__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.INJ.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.AAVE__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.AAVE.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.LQTY__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.LQTY.value, EthTokens.USDT.value)),
@@ -119,7 +116,6 @@ INSTRUMENTS = MappingProxyType({
     ExchangeInstrument(Exchange.BINANCE, Instrument.ETH__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.ETH.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.ARB__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.ARB.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.BTC__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.BTC.value, BinanceTokens.USDT.value)),
-    ExchangeInstrument(Exchange.BINANCE, Instrument.XRP__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.XRP.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.SOL__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.SOL.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.TON__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.TON.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.TRX__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.TRX.value, BinanceTokens.USDT.value)),

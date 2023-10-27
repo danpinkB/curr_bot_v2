@@ -1,9 +1,8 @@
 import contextlib
-from typing import Type, TypeVar, Iterator
+from typing import Type, TypeVar
 
 import aio_pika
-from aio_pika.abc import AbstractRobustConnection, AbstractIncomingMessage, \
-    ExchangeType, DeliveryMode
+from aio_pika.abc import AbstractRobustConnection, ExchangeType, DeliveryMode, AbstractQueueIterator
 
 T = TypeVar('T', bound='RMQConnectionAsync')
 
@@ -18,14 +17,13 @@ class RMQConnectionAsync:
         return RMQConnectionAsync(connection)
 
     @contextlib.asynccontextmanager
-    async def persistent_subscribe(self, exchange_name: str, queue_name: str) -> Iterator[AbstractIncomingMessage]:
+    async def persistent_subscribe(self, exchange_name: str, queue_name: str) -> AbstractQueueIterator:
         async with self._connection.channel() as channel:
             await channel.set_qos(prefetch_count=1)
             exchange = await channel.declare_exchange(exchange_name, ExchangeType.TOPIC)
             queue = await channel.declare_queue(queue_name, durable=True)
             await queue.bind(exchange, routing_key=queue_name)
-            async with queue.iterator() as iterator:
-                yield iterator
+            yield queue.iterator()
 
     async def persistent_publish(self, exchange_name: str, queue_name: str, message: bytes) -> None:
         # Sending a message

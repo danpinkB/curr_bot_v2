@@ -10,7 +10,6 @@ from kv_db.db_tg_settings.db_tg_settings import db_tg_settings
 from kv_db.db_tg_settings.structures import TelegramSettings
 from management_api.env import MANAGEMENT_API_PORT, LAST_PRICE_API_URL
 
-
 app = FastAPI()
 
 
@@ -21,7 +20,7 @@ async def get_price(instrument: Instrument) -> str:
             return await response.json()
 
 
-@app.put("/telegram/db_settings")
+@app.put("/telegram/settings")
 async def set_settings(settings: TelegramSettings) -> None:
     await telegram_settings_rconn.set_settings(settings)
 

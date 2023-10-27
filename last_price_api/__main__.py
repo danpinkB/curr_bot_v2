@@ -2,9 +2,12 @@ import asyncio
 import logging
 from typing import Dict, Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()
 from aiohttp import web
 
-from abstract.const import INSTRUMENTS, EXCHANGES
+from abstract.const import INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import Instrument
 from last_price_api.env import LAST_PRICE_API__PORT
@@ -14,10 +17,9 @@ from message_broker.topics.notification import ExchangeInstrumentDifference, pub
 from message_broker.topics.price import LastPriceMessage, InstrumentPrice, subscribe_price_topic
 
 INSTRUMENT_PRICES: Dict[Instrument, Dict[Exchange, Optional[InstrumentPrice]]] = dict()
-for i in INSTRUMENTS:
-    INSTRUMENT_PRICES[i] = dict()
-    for e in EXCHANGES:
-        INSTRUMENT_PRICES[i][e] = None
+for i in INSTRUMENTS.keys():
+    INSTRUMENT_PRICES[i.instrument] = dict()
+    INSTRUMENT_PRICES[i.instrument][i.exchange] = None
 
 
 async def _consume_callback(ex_last_price: LastPriceMessage, broker: RMQConnectionAsync):
@@ -51,6 +53,7 @@ async def main():
     # TODO fill from historical .var
     message: LastPriceMessage
     async for message in subscribe_price_topic(broker):
+        logging.info(message)
         await _consume_callback(message, broker)
     app = web.Application()
     app.add_routes([

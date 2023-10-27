@@ -1,8 +1,7 @@
-import contextlib
 from _decimal import Decimal
 from typing import NamedTuple, AsyncIterator
 
-from aio_pika.abc import AbstractIncomingMessage
+from aio_pika.abc import AbstractIncomingMessage, AbstractQueueIterator
 
 from abstract.exchange import Exchange
 from abstract.instrument import Instrument
@@ -12,7 +11,7 @@ TOPIC__PRICE = "price"
 
 
 class LastPriceMessageMessageWrapper:
-    def __init__(self, iterator: AsyncIterator[AbstractIncomingMessage]) -> None:
+    def __init__(self, iterator: AbstractQueueIterator) -> None:
         self._iterator = iterator
 
     async def __anext__(self) -> 'LastPriceMessage':
@@ -21,10 +20,12 @@ class LastPriceMessageMessageWrapper:
             return LastPriceMessage.from_bytes(message.body)
 
 
-@contextlib.asynccontextmanager
 async def subscribe_price_topic(conn: RMQConnectionAsync) -> AsyncIterator['LastPriceMessage']:
+    message: AbstractIncomingMessage
     async with conn.persistent_subscribe(TOPIC__PRICE, TOPIC__PRICE) as iterator:
-        yield LastPriceMessageMessageWrapper(iterator)
+        async for message in iterator:
+            async with message.process():
+                yield LastPriceMessage.from_bytes(message.body)
 
 
 async def publish_price_topic(conn: RMQConnectionAsync, data: 'LastPriceMessage') -> None:
@@ -69,7 +70,7 @@ class LastPriceMessage(NamedTuple):
         ind += buy_len + 1
         sell_len = data[ind - 1]
         sell_s = data[ind: ind + sell_len].decode("ascii")
-        ind = sell_len + 1
+        ind += sell_len + 1
         buy_fee_len = data[ind - 1]
         buy_fee_s = data[ind: ind + buy_fee_len].decode("ascii")
         ind += buy_fee_len + 1

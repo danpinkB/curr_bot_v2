@@ -1,5 +1,4 @@
-FROM python:3.10-alpine
-# Or any preferred Python version.
+FROM python:3.11-alpine
 WORKDIR /docker_app
 RUN pip install --upgrade pip && pip install poetry
 COPY ./poetry.lock ./pyproject.toml /docker_app/

@@ -13,6 +13,7 @@ from jinja2 import Template
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams, Instrument
+from kv_db.db_price_parser_uniswap_sync.db_price_parser_uniswap_sync import db_price_parser_uniswap_sync
 from message_broker.message_broker import message_broker
 from message_broker.topics.price import LastPriceMessage, InstrumentPrice, publish_price_topic
 from price_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
@@ -28,18 +29,19 @@ REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if a
 INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex:i for i in REQUIRED_INSTRUMENTS}
 
 
+class FieldMapper(NamedTuple):
+    field_name: str
+    apply: Callable[[Any], Any]
+
+
 class CLIQuoteUniswap(NamedTuple):
     best_route: str
+    amount: Decimal
     quote_in: Decimal
     gas_quote: Decimal
     gas_usd: Decimal
     call_data: str
     block_number: int
-
-
-class FieldMapper(NamedTuple):
-    field_name: str
-    apply: Callable[[Any], Any]
 
 
 mapper = {
@@ -49,15 +51,15 @@ mapper = {
     ),
     5: FieldMapper(
         field_name="quote_in",
-        apply=lambda x: x
+        apply=lambda x: Decimal(x)
     ),
     7: FieldMapper(
         field_name="gas_quote",
-        apply=lambda x: x[18:]
+        apply=lambda x: Decimal(x[18:])
     ),
     8: FieldMapper(
         field_name="gas_usd",
-        apply=lambda x: x[13:]
+        apply=lambda x: Decimal(x[11:])
     ),
     9: FieldMapper(
         field_name="call_data",
@@ -68,39 +70,46 @@ mapper = {
             apply=lambda x: x[12:]
     )
 }
-cli_height = range(13)
+CLI_HEIGHT = range(13)
 
 
-async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: int, type_: str) -> Optional[CLIQuoteUniswap]:
+async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: Decimal, type_: str) -> Optional[CLIQuoteUniswap]:
     command = f'{UNI_CLI_PATH}bin/cli quote -i {quote} -o {base} --amount {amount} --{type_} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3'
     args = shlex.split(command)
     process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     quote = {}
-    for ind in cli_height:
+    field_mapper: Optional[FieldMapper]
+    for line_number in CLI_HEIGHT:
+        field_mapper = mapper.get(line_number)
         line = await process.stdout.readline()
-        if line and mapper.get(ind):
-            quote[mapper[ind].field_name] = mapper[ind].apply(ansi_escape.sub('', line.decode("utf-8")))
-    return CLIQuoteUniswap(**quote)
+        if field_mapper is not None:
+            quote[field_mapper.field_name] = field_mapper.apply(ansi_escape.sub('', line.decode("utf-8")))
+    logging.info(quote)
+    if len(quote) > 0:
+        return CLIQuoteUniswap(amount=amount, **quote)
 
 
 async def main():
     curr_block_number = 0
     broker = await message_broker()
-    # await sender.connect()
+    sync_manager = db_price_parser_uniswap_sync()
+    amount = Decimal(10000)
+
     while True:
         if curr_block_number != connection.eth.block_number:
             p: DEXExchangeInstrumentParams
             i: Instrument
 
             for p, i in INSTRUMENT_ARGUMENTS.items():
-                buy = await _quote(p.base.address, p.quote.address, 10000, "exactIn")
-                sell = await _quote(p.quote.address, p.base.address, 10000, "exactOut")
-
-                await publish_price_topic(broker, LastPriceMessage(
-                    price=InstrumentPrice(buy=buy.quote_in, sell=sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
-                    exchange=Exchange.UNISWAP,
-                    instrument=i
-                ))
+                logging.info(i.name)
+                if not await sync_manager.is_locked(i):
+                    buy = await _quote(p.quote.address, p.base.address, amount, "exactIn")
+                    sell = await _quote(p.quote.address, p.base.address, amount, "exactOut")
+                    await publish_price_topic(broker, LastPriceMessage(
+                        price=InstrumentPrice(buy=amount/buy.quote_in, sell=amount/sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
+                        exchange=Exchange.UNISWAP,
+                        instrument=i
+                    ))
 
             curr_block_number = connection.eth.block_number
 

@@ -17,10 +17,8 @@ services:
     container_name: price_parser_binance
     restart: unless-stopped
     environment:
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
-      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
-      RABBITMQ_QUE__SENDER: 'price'
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
       - message_broker
       - kv_db
@@ -32,18 +30,12 @@ services:
     container_name: last_price_api
     restart: unless-stopped
     environment:
-      RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
-      RABBITMQ_QUE__CONSUMER : 'price'
-
-      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
-      RABBITMQ_QUE__SENDER : 'notification'
-
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
+      LAST_PRICE_API__PORT: ${LAST_PRICE_API__PORT}
     depends_on:
       - message_broker
       - kv_db
-
 
   management_api:
     <<: *common-docker-image
@@ -51,8 +43,7 @@ services:
     container_name: management_api
     restart: unless-stopped
     environment:
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
 
     healthcheck:
@@ -94,34 +85,31 @@ services:
     environment:
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-
-      RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
-      RABBITMQ_QUE__CONSUMER: 'notification'
-
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
-      REDIS_DSN__SETTINGS: ${REDIS_DSN__SETTINGS}
+      DB_TG_SETTINGS__DSN: ${DB_TG_SETTINGS__DSN}
       DB_PATH: ""
     depends_on:
       - message_broker
 
 
   price_parser_uniswap:
-    <<: *common-docker-image
+    image: price_parser_uniswap
+    build:
+      context: .
+      dockerfile: ./price_parser_uniswap/Dockerfile
     command: ["python", "-m", "price_parser_uniswap"]
     #container_name: price_parser_uniswap
     restart: unless-stopped
     deploy:
-      replicas: 3
+      replicas: 10
     environment:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PATH : ${REDIS_DSN__PATH}
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
       REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
-      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
 
-      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
-      RABBITMQ_QUE__SENDER : 'price'
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
       - kv_db
       - message_broker
