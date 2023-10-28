@@ -1,2 +1,0 @@
-CHAIN = 5
-NAME = "UNIv3"

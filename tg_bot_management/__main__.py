@@ -1,166 +1,94 @@
 import logging
 import os
-from typing import Optional, Tuple
+from typing import Optional
 
+import httpx
+from httpx import Response
+from httpx._types import RequestData
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
+from telegram.ext._utils.types import HandlerCallback, CCT, RT
 from web3._utils.module_testing.go_ethereum_personal_module import PASSWORD
 
-from obs_shared.types.comparer_settings import ComparerSettings
-from obs_shared.types.management_web_service import MainServiceBase
-from tg_bot_management.env import DB_PATH, TELEGRAM_BOT_TOKEN
-from tg_bot_management.main_server_connector import MainServerRpycConnector
+from abstract.instrument import Instrument
+from kv_db.db_tg_settings.structures import TelegramSettings
+from tg_bot_management.const import HELP_MESSAGE
+from tg_bot_management.env import DB_PATH, MANAGEMENT_API_URL, TELEGRAM_BOT_TOKEN
 
 
-def check_user(err):
+async def send_not_allowed_exception(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("you are not allowed")
+
+
+def check_user(update: Update) -> bool:
+    return os.path.exists(f"{os.getcwd()}/.var/users/{update.message.chat_id}")
+
+
+def check_user_decorator() -> HandlerCallback[Update, CCT, RT]:
     def decorator(func):
-        def wrapper(service, update: Update, context: ContextTypes.DEFAULT_TYPE):
-            print(os.getcwd())
-
-            if os.path.exists(f"{os.getcwd()}/data/users/{update.message.chat_id}"):
-                return func(service, update, context)
-            return err(service, update, context)
+        async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> HandlerCallback[Update, CCT, RT] | None:
+            if check_user(update):
+                return await func(update, context)
+            return await send_not_allowed_exception(update, context)
 
         return wrapper
     return decorator
 
 
-def tg_handler_name(name: str, description: str):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        wrapper.handler_name = name
-        wrapper.handler_description = description
-        return wrapper
-    return decorator
+async def authorize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    command, password = update.message.text.split(" ")
+    if password == PASSWORD:
+        with open(f"{DB_PATH}/data/users/{update.message.chat_id}", "w"):
+            await update.message.reply_text("your welcome")
 
 
-class TGBotMainService(MainServiceBase):
+async def request_management_api(postfix: str, method: str, data: Optional[RequestData] = None) -> Response:
+    async with httpx.AsyncClient() as client:
+        return await client.request(f'{MANAGEMENT_API_URL}{postfix}', method, data=data)
+
+@check_user_decorator
+async def get_price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    split_command_args = update.message.text.split(" ")
+    command, symbol = update.message.text.split(" ")
+    price = await request_management_api(f"/price", "get", Instrument(f'{symbol}__USDT'))
+    await update.message.reply_text()
+
+@check_user_decorator
+async def get_exchanges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    resp = await request_management_api("/exchanges", "get", None)
+    await update.message.reply_text(resp.text)
+
+@check_user_decorator
+async def get_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(HELP_MESSAGE)
 
 
-    def __init__(self) -> None:
-        self._tg_bot_server = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-        self._help_command = list()
-        actions = set()
-        for management_action in getattr(MainServiceBase, '__abstractmethods__'):
-            method = self.__getattribute__(management_action)
-            if method.handler_name not in actions:
-                self._help_command.append(method.handler_description)
-                self._tg_bot_server.add_handler(CommandHandler(method.handler_name, method))
-                actions.add(method.handler_name)
+@check_user_decorator
+async def set_setting(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    command, setting_name, setting_value = update.message.text.split(" ")
+    resp = await request_management_api("/exchanges", "put", None)
+    await update.message.reply_text(self._main_connector.set_setting(setting_name, setting_value))
 
-        self._tg_bot_server.add_handler(CommandHandler("help", self.get_help))
-        self._tg_bot_server.add_handler(CommandHandler("password", self.authorize))
-        self._main_connector = MainServerRpycConnector()
+@check_user_decorator
+async def set_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    settings = self._main_connector.get_settings()
+    args = update.message.text.split(" ")
+    new_settings = list()
+    old_settings = settings.to_row()
+    for ind_, arg in enumerate(args[1:]):
+        new_settings[ind_] = arg if arg != "-" else old_settings[ind_]
 
-    async def send_not_allowed_exception(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text("you are not allowed")
+    await update.message.reply_text(self._main_connector.set_settings(TelegramSettings(*new_settings)))
 
-    def run_polling(self, *args, **kwargs) -> None:
-        self._tg_bot_server.run_polling(*args, **kwargs)
+def main():
+    tg_bot_server = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+    tg_bot_server.add_handler(CommandHandler("price", get_price))
+    tg_bot_server.add_handler(CommandHandler("exchanges", get_exchanges))
+    tg_bot_server.add_handler(CommandHandler("setting", set_setting))
+    tg_bot_server.add_handler(CommandHandler("ssettings", set_settings))
+    tg_bot_server.add_handler(CommandHandler("password",    authorize))
 
-    async def _activate_pair_hole(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        split_command_args = update.message.text.split(" ")
-        if len(split_command_args) == 2:
-            await update.message.reply_text(self._main_connector.activate_pair(split_command_args[1]))
-        if len(split_command_args) == 3:
-            await update.message.reply_text(
-                self._main_connector.activate_exchange_pair(split_command_args[1], split_command_args[2]))
 
-    async def _deactivate_pair_hole(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        split_command_args = update.message.text.split(" ")
-        if len(split_command_args) == 2:
-            await update.message.reply_text(self._main_connector.deactivate_pair(split_command_args[1]))
-        if len(split_command_args) == 3:
-            await update.message.reply_text(self._main_connector.deactivate_exchange_pair(split_command_args[1], split_command_args[2]))
-
-    async def _price_hole(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        split_command_args = update.message.text.split(" ")
-        logging.info(f"command args {split_command_args}")
-        if len(split_command_args) == 2:
-            command, symbol = update.message.text.split(" ")
-            await update.message.reply_text(self._main_connector.get_price(symbol))
-        if len(split_command_args) == 3:
-            command, ex_name, symbol = update.message.text.split(" ")
-            await update.message.reply_text(self._main_connector.activate_exchange_pair(ex_name, symbol))
-
-    @tg_handler_name("deactivate", "/deactivate [ex_name] [symbol] - ban ex pair")
-    @check_user(send_not_allowed_exception)
-    async def deactivate_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        return await self._deactivate_pair_hole(update, context)
-
-    async def authorize(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        command, password = update.message.text.split(" ")
-        if password == PASSWORD:
-            with open(f"{DB_PATH}/data/users/{update.message.chat_id}", "w"):
-                await update.message.reply_text("your welcome")
-
-    @tg_handler_name("activate", "/activate [ex_name] [symbol] - unban ex pair")
-    @check_user(send_not_allowed_exception)
-    async def activate_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        return await self._activate_pair_hole(update, context)
-
-    @tg_handler_name("deactivate", "/deactivate [ex_name] [symbol] - ban ex pair")
-    @check_user(send_not_allowed_exception)
-    async def deactivate_exchange_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        return await self._deactivate_pair_hole(update, context)
-
-    @tg_handler_name("activate", "/activate [ex_name] [symbol] - unban ex pair")
-    @check_user(send_not_allowed_exception)
-    async def activate_exchange_pair(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        command, ex_name, symbol = update.message.text.split(" ")
-        await update.message.reply_text(self._main_connector.activate_exchange_pair(ex_name, symbol))
-
-    @tg_handler_name("exdpairs", "/exdpairs [ex_name] - get ex banned pairs")
-    @check_user(send_not_allowed_exception)
-    async def get_ex_banned_pairs(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        command, ex_name = update.message.text.split(" ")
-        await update.message.reply_text(self._main_connector.get_ex_banned_pairs(ex_name))
-
-    @tg_handler_name("price", "/price [symbol] - get symbol prices")
-    @check_user(send_not_allowed_exception)
-    async def get_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        return await self._price_hole(update, context)
-
-    @tg_handler_name("price", "/price [symbol] - get symbol prices")
-    @check_user(send_not_allowed_exception)
-    async def get_exchange_price(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[str]:
-        return await self._price_hole(update, context)
-
-    @tg_handler_name("exchanges", "/exchanges - get exchanges names")
-    @check_user(send_not_allowed_exception)
-    async def get_exchanges(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        names = self._main_connector.get_exchanges()
-        logging.info(f"names:{names}")
-        await update.message.reply_text(names)
-
-    @check_user(send_not_allowed_exception)
-    async def get_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text("\n".join(self._help_command))
-
-    @tg_handler_name("setting", "/setting [setting_name] [setting_value]")
-    @check_user(send_not_allowed_exception)
-    async def set_setting(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        command, setting_name, setting_value = update.message.text.split(" ")
-        await update.message.reply_text(self._main_connector.set_setting(setting_name, setting_value))
-
-    @tg_handler_name("ssettings", "/ssettings [percent] [delay_mills] [rvolume] [mdelay]")
-    @check_user(send_not_allowed_exception)
-    async def set_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        settings = self._main_connector.get_settings()
-        args = update.message.text.split(" ")
-        new_settings = list()
-        old_settings = settings.to_row()
-        for ind_, arg in enumerate(args[1:]):
-            new_settings[ind_] = arg if arg != "-" else old_settings[ind_]
-
-        await update.message.reply_text(self._main_connector.set_settings(ComparerSettings.from_row(tuple[str, str, str, str](new_settings))))
-
-    @tg_handler_name("settings", "/settings - get settings")
-    @check_user(send_not_allowed_exception)
-    async def get_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text(self._main_connector.get_settings().to_printable())
 
 
 if __name__ == "__main__":

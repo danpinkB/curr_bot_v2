@@ -1,115 +1,94 @@
+import asyncio
+import json
 import logging
 import time
 from _decimal import Decimal
-from datetime import datetime, timezone
+from typing import Dict, Optional
 
-from pika import spec
-from pika.adapters.blocking_connection import BlockingChannel
+from dotenv import load_dotenv
 
-from last_price_api.env import REDIS_DSN__PRICE, REDIS_DSN__SETTINGS, \
-    RABBITMQ_QUE__SENDER, RABBITMQ_QUE__CONSUMER, RABBITMQ_DSN__SENDER, RABBITMQ_DSN__CONSUMER
-from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
-from obs_shared.connection.price_db_rconn import PriceRConnection
-from obs_shared.connection.rabbit_mq_connection import RMQConnection
-from obs_shared.types.calculation_difference import CalculationDifference
-from obs_shared.types.calculation_price import CalculationPrice
-from obs_shared.types.comparer_settings import ComparerSettings
+from kv_db.db_tg_settings.db_tg_settings import db_tg_settings
+from kv_db.db_tg_settings.structures import TelegramSettings
 
-icons = ['⚪️', '🔶']
+load_dotenv()
+from aiohttp import web
 
-setting_rconn = ActiveSettingsManagementRConnection(REDIS_DSN__SETTINGS)
-consumer = RMQConnection(RABBITMQ_DSN__CONSUMER, RABBITMQ_QUE__CONSUMER)
-sender = RMQConnection(RABBITMQ_DSN__SENDER, RABBITMQ_QUE__SENDER)
-price_rconn = PriceRConnection(REDIS_DSN__PRICE)
+from abstract.const import INSTRUMENTS
+from abstract.exchange import Exchange
+from abstract.instrument import Instrument
+from last_price_api.env import LAST_PRICE_API__PORT
+from message_broker.async_rmq_connection import RMQConnectionAsync
+from message_broker.message_broker import message_broker
+from message_broker.topics.notification import ExchangeInstrumentDifference, publish_notification_topic
+from message_broker.topics.price import LastPriceMessage, InstrumentPrice, subscribe_price_topic
+JSON_HEADERS = {'Content-Type': 'application/json'}
 
-ZERO = Decimal(0)
-groups = [dict(), dict()]
-
-settings = setting_rconn.get_setting()
-settings_last_parsed_time = time.time()
+INSTRUMENT_PRICES: Dict[Instrument, Dict[Exchange, Optional[InstrumentPrice]]] = dict()
+for i in INSTRUMENTS.keys():
+    INSTRUMENT_PRICES[i.instrument] = dict()
+    INSTRUMENT_PRICES[i.instrument][i.exchange] = None
 
 
-def _get_settings() -> ComparerSettings:
-    global settings
-    if time.time() - settings_last_parsed_time > 60:
-        settings = setting_rconn.get_setting()
-    return settings
+async def _consume_callback(ex_last_price: LastPriceMessage, broker: RMQConnectionAsync, required_percent: Decimal):
+    INSTRUMENT_PRICES[ex_last_price.instrument][ex_last_price.exchange] = ex_last_price.price
+    #TODO send price to historical
+    for exchange, price in INSTRUMENT_PRICES[ex_last_price.instrument].items():
+        if ex_last_price.exchange == exchange or price is None:
+            continue
+        await send_difference(broker, ex_last_price.instrument, ex_last_price.exchange, ex_last_price.price, exchange, price, required_percent)
+        await send_difference(broker, ex_last_price.instrument, exchange, price, ex_last_price.exchange, ex_last_price.price, required_percent)
 
 
-def _consume_callback(ch: BlockingChannel, method: spec.Basic.Deliver, properties: spec.BasicProperties, body: bytes):
-    calc_price = CalculationPrice.from_bytes(body)
-    logging.info(f"price {calc_price}")
-    #
-    if groups[calc_price.group].get(calc_price.symbol) is None:
-        groups[calc_price.group][calc_price.symbol] = dict()
-    groups[calc_price.group][calc_price.symbol][calc_price.exchange] = calc_price.price.price
-    if calc_price.group == 0:
-        _compare_dex_with_cexes(calc_price)
-    else:
-        _compare_cex_with_dexes(calc_price)
-
-
-def _compare_dex_with_cexes(calc_price: CalculationPrice):
-    symbol = calc_price.symbol
-    data = groups[1].get(symbol)
-    if data is not None:
-        now = datetime.now(timezone.utc).timestamp()
-        ex0price: Decimal = calc_price.price[calc_price.buy]
-        ex0 = calc_price.exchange
-        if calc_price.buy == 1:
-            for cex_name, cex_price in data.items():
-                if cex_price[0] != ZERO and ex0price < cex_price[0]:
-                    diff = cex_price[0] - ex0price
-                    perc_diff = (diff / cex_price[0]) * 100
-                    send_message_wrapper(icons[0], symbol, perc_diff, ex0, cex_name, ex0price, cex_price[0], now)
-        else:
-            for cex_name, cex_price in data.items():
-                if cex_price[0] != ZERO and ex0price > cex_price[0]:
-                    diff = ex0price - cex_price[0]
-                    perc_diff = (diff / ex0price) * 100
-                    send_message_wrapper(icons[1], symbol, perc_diff, cex_name, ex0, cex_price[0], ex0price, now)
-
-
-def _compare_cex_with_dexes(calc_price: CalculationPrice) -> None:
-    data = groups[0].get(calc_price.symbol)
-    if data is not None:
-        ex0price: Decimal = calc_price.price[0]
-        ex0 = calc_price.exchange
-        symbol = calc_price.symbol
-        now = datetime.now(timezone.utc).timestamp()
-        for dex_ex, dex_buy_sell_prices in data.items():
-            if dex_buy_sell_prices[0] != ZERO and dex_buy_sell_prices[0] > ex0price:
-                ex1price = dex_buy_sell_prices[0]
-                diff = ex1price - ex0price
-                perc_diff = (diff / ex1price) * 100
-                send_message_wrapper(icons[1], symbol, perc_diff, ex0, dex_ex, ex0price, ex1price, now)
-            if dex_buy_sell_prices[1] != ZERO and dex_buy_sell_prices[1] < ex0price:
-                ex1price = dex_buy_sell_prices[1]
-                diff = ex0price - ex1price
-                perc_diff = (diff / ex0price) * 100
-                send_message_wrapper(icons[0], symbol, perc_diff, dex_ex, ex0, ex1price, ex0price, now)
-
-
-def send_message_wrapper(icon: str, symbol: str, perc_diff: Decimal, from_ex: str, to_ex: str, from_price: Decimal, to_price: Decimal, now: float) -> None:
-    settings_ = _get_settings()
-    logging.info(f"{icon} {symbol}, {from_ex}, {to_ex}, {from_price}, {to_price}, {perc_diff}")
-    if perc_diff > settings_.percent:
-        diff_model = CalculationDifference(
-            ex_from=from_ex,
-            ex_to=to_ex,
-            price_from=from_price,
-            price_to=to_price,
-            diff_percent=perc_diff,
-            icon=icon,
-            symbol=symbol
+async def send_difference(broker: RMQConnectionAsync, instrument: Instrument, current_exchange: Exchange, current_price: InstrumentPrice, exchange: Exchange, price: InstrumentPrice, required_percent: Decimal) -> None:
+    price_difference = ExchangeInstrumentDifference(
+            instrument=instrument,
+            buy_exchange=current_exchange,
+            buy_price=current_price.buy,
+            sell_exchange=exchange,
+            sell_price=price.sell,
         )
-        sender.send_message(RABBITMQ_QUE__SENDER, diff_model.to_bytes())
+    if current_price.buy < price.sell and price_difference.calc_difference() > required_percent:
+        logging.info(instrument.name, price_difference.calc_difference())
+        await publish_notification_topic(broker, price_difference)
+
+
+async def handle_get_price(request: web.Request) -> web.Response[Dict[str, InstrumentPrice]]:
+    instrument = int(request.query["instrument"])
+    k: Exchange
+    v: InstrumentPrice
+    res = {k.name: {"buy": str(v.buy), "sell": str(v.sell)} for k, v in INSTRUMENT_PRICES.get(Instrument(instrument), {}).items()}
+    return web.Response(body=json.dumps(res), headers=JSON_HEADERS)
+
+
+async def handle_hi(request: web.Request) -> web.Response[str]:
+    return web.Response(body="HI")
+
+
+async def main():
+    app = web.Application()
+    telegram_settings_rconn = db_tg_settings()
+    app.add_routes([
+        web.get("/", handle_hi),
+        web.get('/price', handle_get_price),
+    ])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", LAST_PRICE_API__PORT)
+    await site.start()
+    broker = await message_broker()
+    # TODO fill from historical .var
+    message: LastPriceMessage
+    lp_time = time.time()
+    settings: TelegramSettings = await telegram_settings_rconn.get_settings()
+    async for message in subscribe_price_topic(broker):
+        now = time.time()
+        if now-lp_time > 10:
+            lp_time = time.time()
+            settings = await telegram_settings_rconn.get_settings()
+        # logging.info(message)
+        await _consume_callback(message, broker, settings.percent)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    for ind_, group_ in enumerate(groups):
-        for ex in setting_rconn.get_group_exchanges(ind_):
-            groups[ind_] = {pair: {ex: price} for pair, price in price_rconn.get_exchange_pairs_prices(ex).items()}
-    consumer.consume(RABBITMQ_QUE__CONSUMER, _consume_callback)
-
+    asyncio.run(main())

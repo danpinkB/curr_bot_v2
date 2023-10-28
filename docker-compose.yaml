@@ -1,5 +1,9 @@
 version: "3.8"
 
+volumes:
+  kv_db_data:
+  message_broker_data:
+
 x-common-docker-image: &common-docker-image
   image: common-docker-image
   build:
@@ -7,59 +11,39 @@ x-common-docker-image: &common-docker-image
     dockerfile: ./Dockerfile
 
 services:
-  # BINANCE_PAIRS
-  pairs_parser_binance:
-    <<: *common-docker-image
-    command: ["python", "-m", "pairs_parser_binance"]
-    container_name: pairs_parser_binance
-    restart: unless-stopped
-    environment:
-      BINANCE_API: ${BINANCE_API}
-      REDIS_DSN__INFO: ${REDIS_DSN__INFO}
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-    depends_on:
-      - settings_rhost
-  # BINANCE_PRICE
   price_parser_binance:
     <<: *common-docker-image
     command: ["python", "-m", "price_parser_binance"]
     container_name: price_parser_binance
     restart: unless-stopped
     environment:
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
-      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
-      RABBITMQ_QUE__SENDER: 'price'
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
-      - rmq
-      - settings_rhost
-  # LAST_PRICE_API
+      - message_broker
+      - kv_db
+
+
   last_price_api:
     <<: *common-docker-image
     command: ["python", "-m", "last_price_api"]
     container_name: last_price_api
-    restart: unless-stopped
+    restart: always
     environment:
-      RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
-      RABBITMQ_QUE__CONSUMER : 'price'
-
-      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
-      RABBITMQ_QUE__SENDER : 'notification'
-
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
+      LAST_PRICE_API__PORT: ${LAST_PRICE_API__PORT}
     depends_on:
-      - rmq
-      - settings_rhost
-  # MANAGEMENT_API
+      - message_broker
+      - kv_db
   management_api:
     <<: *common-docker-image
     command: ["python", "-m", "management_api"]
     container_name: management_api
     restart: unless-stopped
     environment:
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
+      LAST_PRICE_API_URL  : ${LAST_PRICE_API_URL}
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
 
     healthcheck:
@@ -69,120 +53,90 @@ services:
       retries: 3
       start_period: 5s
     depends_on:
-      - settings_rhost
-  # TG_BOT
-  tg_bot_management:
+      - kv_db
+
+#  tg_bot_management:
+#    volumes:
+#      - ${PWD}/.var/users:/docker_app/.var/users
+#    <<: *common-docker-image
+#    command: ["python", "-m", "tg_bot_management"]
+#    #container_name: tg_bot_management
+#    restart: unless-stopped
+#    environment:
+#      MANAGEMENT_API_URL  : ${MANAGEMENT_API_URL}
+#
+#      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
+#      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+#
+#      DB_PATH: ""
+#    depends_on:
+#      - management_api
+
+
+  tg_bot_notifier:
     volumes:
-      - ${PWD}/data/users:/docker_app/data/users
+      - ${PWD}/.var/users:/docker_app/.var/users
     <<: *common-docker-image
-    command: ["python", "-m", "tg_bot_management"]
-    #container_name: tg_bot_management
+    command: ["python", "-m", "tg_bot_notifier"]
+    container_name: tg_bot_notifier
     restart: unless-stopped
     environment:
-      MANAGEMENT_API_URI: management_api
-      MANAGEMENT_API_PORT: ${MANAGEMENT_API_PORT}
-
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
+      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
+      DB_TG_SETTINGS__DSN: ${DB_TG_SETTINGS__DSN}
       DB_PATH: ""
     depends_on:
-      - management_api
-  # TG_NOTIFICATION_HANDLER
-  tg_bot_notification_handler:
-    volumes:
-      - ${PWD}/data/users:/docker_app/data/users
-    <<: *common-docker-image
-    command: ["python", "-m", "tg_bot_notification_handler"]
-    container_name: tg_bot_notification_handler
-    restart: unless-stopped
-    environment:
-      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      - message_broker
 
-      RABBITMQ_DSN__CONSUMER : ${RABBITMQ_DSN__CONSUMER}
-      RABBITMQ_QUE__CONSUMER: 'notification'
 
-      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
-      REDIS_DSN__SETTINGS: ${REDIS_DSN__SETTINGS}
-      DB_PATH: ""
-    depends_on:
-      - rmq
-  # UNI_PAIRS_PARSER
-  pairs_parser_uniswap:
-    <<: *common-docker-image
-    command: ["python", "-m", "pairs_parser_uniswap"]
-    container_name: pairs_parser_uniswap
-    restart: unless-stopped
-    environment:
-      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-    depends_on:
-      - settings_rhost
-  # UNI_PATH_PARSER
-  path_parser_uniswap:
-    image: path_parser_uniswap
-#    build:
-#      context: .
-#      dockerfile: ./path_parser_uniswap/Dockerfile
-    command: ["python", "-m", "path_parser_uniswap"]
-    #container_name: path_parser_uniswap
-    restart: unless-stopped
-    deploy:
-      replicas: 2
-    environment:
-      JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
-      REDIS_DSN__PATH : ${REDIS_DSN__PATH}
-      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
-    depends_on:
-      - settings_rhost
-  # UNI_PRICE_PARSER
   price_parser_uniswap:
-    <<: *common-docker-image
+    image: price_parser_uniswap
+    build:
+      context: .
+      dockerfile: ./price_parser_uniswap/Dockerfile
     command: ["python", "-m", "price_parser_uniswap"]
     #container_name: price_parser_uniswap
     restart: unless-stopped
     deploy:
-      replicas: 3
+      replicas: 13
     environment:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
-      REDIS_DSN__SETTINGS : ${REDIS_DSN__SETTINGS}
-      REDIS_DSN__PATH : ${REDIS_DSN__PATH}
-      REDIS_DSN__PRICE : ${REDIS_DSN__PRICE}
-      REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
-      REDIS_DSN__INFO : ${REDIS_DSN__INFO}
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
+      DB_PRICE_PARSER_SYNC__DSN : ${DB_PRICE_PARSER_SYNC__DSN}
 
-      RABBITMQ_DSN__SENDER : ${RABBITMQ_DSN__SENDER}
-      RABBITMQ_QUE__SENDER : 'price'
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
-      - settings_rhost
-      - rmq
+      - kv_db
+      - message_broker
 
-  settings_rhost:
+
+  kv_db:
     image: 'redislabs/redismod'
     volumes:
-      - ${PWD}/data/redis:/data
-    container_name: settings_rhost
+      - kv_db_data:/.var
+    container_name: kv_db
     restart: unless-stopped
-    ports:
-      - "6379:6379"
-  rmq:
+#    ports:
+#      - "6379:6379"
+
+
+  message_broker:
     image: 'rabbitmq:3-management'
     volumes:
-      - ${PWD}/data/rabbitmq/data:/var/lib/rabbitmq
+      - message_broker_data:/var/lib/rabbitmq
     restart: unless-stopped
-    container_name: rmq
+    container_name: message_broker
     environment:
-      RABBITMQ_DEFAULT_USER: ${RMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5672" ]
       interval: 30s
       timeout: 10s
       retries: 5
-    ports:
-      - "15672:15672"
-      - "5672:5672"
+#    ports:
+#      - "15672:15672"
+#      - "5672:5672"
 # regular expression for intelij ---->>>> \= os\.environ\.get\("\w*"\) replace ----->>>>>: \${}

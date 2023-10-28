@@ -1,82 +1,46 @@
+import json
 import logging
+from typing import Dict, Any
 
-import rpyc
+import aiohttp
+import uvicorn
+from fastapi import FastAPI
 
-from management_api.env import REDIS_DSN__PRICE, REDIS_DSN__SETTINGS, MANAGEMENT_API_PORT
-from obs_shared.connection.active_settings_management_rconn import ActiveSettingsManagementRConnection
-from obs_shared.connection.price_db_rconn import PriceRConnection
-from obs_shared.types.comparer_settings import ComparerSettings
-from obs_shared.types.management_web_service import MainServiceBase
-from rpyc import ThreadedServer
+from abstract.const import EXCHANGES
+from abstract.instrument import Instrument
+from kv_db.db_tg_settings.db_tg_settings import db_tg_settings
+from kv_db.db_tg_settings.structures import TelegramSettings
+from management_api.env import MANAGEMENT_API_PORT, LAST_PRICE_API_URL
+
+app = FastAPI()
+
+JSON_HEADERS = {'Content-Type': 'application/json'}
 
 
-class MainService(rpyc.Service, MainServiceBase):
+@app.get("/price")
+async def get_price(instrument: int) -> Dict[str, Any]:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{LAST_PRICE_API_URL}/price?instrument={instrument}", headers=JSON_HEADERS) as response:
+            return await response.json(content_type=None)
 
-    def __init__(self) -> None:
-        self._active_settings_rconn = ActiveSettingsManagementRConnection(REDIS_DSN__SETTINGS)
-        self._price_rconn = PriceRConnection(REDIS_DSN__PRICE)
-        super(MainService, self).__init__()
 
-    def is_alive(self) -> bool:
-        return True
+@app.post("/telegram/settings")
+async def set_settings(settings: TelegramSettings) -> None:
+    await telegram_settings_rconn.set_settings(settings)
 
-    def on_connect(self, conn: rpyc.core.protocol.Connection):
-        logging.info("Client connected.")
 
-    def on_disconnect(self, conn):
-        logging.info("Client disconnected.")
+@app.get("/telegram/db_settings")
+async def get_settings() -> TelegramSettings:
+    return await telegram_settings_rconn.get_settings()
 
-    def deactivate_pair(self, symbol: str) -> str:
-        for exchange in self._active_settings_rconn.get_exchanges():
-            self._active_settings_rconn.deactivate_ex_pair(exchange, symbol)
-        return f"{symbol} deactivated"
 
-    def activate_pair(self, symbol: str) -> str:
-        for exchange in self._active_settings_rconn.get_exchanges():
-            self._active_settings_rconn.activate_ex_pair(exchange, symbol)
-        return f"{symbol} activated"
-
-    def deactivate_exchange_pair(self, exchange: str, symbol: str) -> str:
-        self._active_settings_rconn.deactivate_ex_pair(exchange, symbol)
-        return f"{exchange}-{symbol} was deactivated"
-
-    def activate_exchange_pair(self, exchange: str, symbol: str) -> str:
-        self._active_settings_rconn.activate_ex_pair(exchange, symbol)
-        return f"{exchange}-{symbol} was activated"
-
-    def get_ex_banned_pairs(self, exchange: str) -> str:
-        return ", ".join(self._active_settings_rconn.get_exchange_banned_pairs(exchange))
-
-    def get_price(self, symbol) -> str:
-        res = "PRICES: \n"
-        for exchange, price in self._price_rconn.get_pair_exchanges_prices(symbol).items():
-            res += f"{exchange} : {price.to_printable_str()} \n"
-        return res
-
-    def get_exchange_price(self, exchange: str, symbol: str) -> str:
-        price = self._price_rconn.get_exchange_pair_price(exchange, symbol)
-        return f"{exchange} : {price.to_printable_str()} \n"
-
-    def get_exchanges(self) -> str:
-        return ", ".join(self._active_settings_rconn.get_exchanges())
-
-    def set_setting(self, setting_name: str, setting_value: str) -> str:
-        self._active_settings_rconn.set_setting(setting_name, setting_value)
-        return "OK"
-
-    def set_settings(self, settings: ComparerSettings) -> str:
-        self._active_settings_rconn.set_settings(settings)
-        return "OK"
-
-    def get_settings(self) -> ComparerSettings:
-        return self._active_settings_rconn.get_setting()
+@app.get("/exchanges")
+async def get_exchanges() -> str:
+    return ", ".join([i.name for i in EXCHANGES.values()])
 
 
 if __name__ == "__main__":
+    telegram_settings_rconn = db_tg_settings()
     logging.basicConfig(level=logging.INFO)
-    server = ThreadedServer(
-        service=MainService,
-        port=MANAGEMENT_API_PORT,
-        protocol_config={"allow_public_attrs": True}
-    )
-    server.start()
+    uvicorn.run(app, host="0.0.0.0", port=MANAGEMENT_API_PORT)
+
