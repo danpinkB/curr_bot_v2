@@ -1,10 +1,8 @@
 import logging
 import os
 from typing import Optional
-from urllib.request import Request
 
 import httpx
-import requests
 from httpx import Response
 from httpx._types import RequestData
 from telegram import Update
@@ -23,7 +21,7 @@ async def send_not_allowed_exception(update: Update, context: ContextTypes.DEFAU
 
 
 def check_user(update: Update) -> bool:
-    return os.path.exists(f"{os.getcwd()}/data/users/{update.message.chat_id}")
+    return os.path.exists(f"{os.getcwd()}/.var/users/{update.message.chat_id}")
 
 
 def check_user_decorator() -> HandlerCallback[Update, CCT, RT]:
@@ -48,15 +46,12 @@ async def request_management_api(postfix: str, method: str, data: Optional[Reque
     async with httpx.AsyncClient() as client:
         return await client.request(f'{MANAGEMENT_API_URL}{postfix}', method, data=data)
 
-
 @check_user_decorator
 async def get_price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     split_command_args = update.message.text.split(" ")
     command, symbol = update.message.text.split(" ")
     price = await request_management_api(f"/price", "get", Instrument(f'{symbol}__USDT'))
     await update.message.reply_text()
-
-
 
 @check_user_decorator
 async def get_exchanges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

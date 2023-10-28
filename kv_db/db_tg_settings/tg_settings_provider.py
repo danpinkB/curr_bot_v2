@@ -1,4 +1,5 @@
-from aioredis import Redis
+import redis
+from redis.asyncio import Redis
 
 from kv_db.db_tg_settings.structures import TelegramSettings
 
@@ -7,7 +8,7 @@ SETTINGS_KEY = "SETTINGS"
 
 class TgSettingsProvider:
     def __init__(self, dsn: str):
-        self._conn: Redis = Redis.from_url(dsn)
+        self._conn: Redis = redis.asyncio.from_url(dsn)
 
     async def is_connected(self) -> bool:
         await self._conn.ping()
@@ -15,6 +16,12 @@ class TgSettingsProvider:
 
     async def get_settings(self) -> TelegramSettings:
         settings_data = await self._conn.hgetall(SETTINGS_KEY)
+        if len(settings_data) == 0:
+            return TelegramSettings(
+                percent=0.7,
+                calc_volume=10_000,
+                messages_delay=100
+            )
         return TelegramSettings(*settings_data)
 
     async def set_settings(self, settings: TelegramSettings) -> None:

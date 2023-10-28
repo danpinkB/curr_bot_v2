@@ -10,16 +10,6 @@ from message_broker.async_rmq_connection import RMQConnectionAsync
 TOPIC__PRICE = "price"
 
 
-class LastPriceMessageMessageWrapper:
-    def __init__(self, iterator: AbstractQueueIterator) -> None:
-        self._iterator = iterator
-
-    async def __anext__(self) -> 'LastPriceMessage':
-        message: AbstractIncomingMessage = await anext(self._iterator)
-        async with message.process():
-            return LastPriceMessage.from_bytes(message.body)
-
-
 async def subscribe_price_topic(conn: RMQConnectionAsync) -> AsyncIterator['LastPriceMessage']:
     message: AbstractIncomingMessage
     async with conn.persistent_subscribe(TOPIC__PRICE, TOPIC__PRICE) as iterator:

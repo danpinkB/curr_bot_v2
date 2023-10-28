@@ -28,7 +28,7 @@ services:
     <<: *common-docker-image
     command: ["python", "-m", "last_price_api"]
     container_name: last_price_api
-    restart: unless-stopped
+    restart: always
     environment:
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
@@ -36,13 +36,15 @@ services:
     depends_on:
       - message_broker
       - kv_db
-
+    ports:
+      - ${LAST_PRICE_API__PORT}:${LAST_PRICE_API__PORT}
   management_api:
     <<: *common-docker-image
     command: ["python", "-m", "management_api"]
     container_name: management_api
     restart: unless-stopped
     environment:
+      LAST_PRICE_API_URL  : ${LAST_PRICE_API_URL}
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
 
@@ -54,25 +56,25 @@ services:
       start_period: 5s
     depends_on:
       - kv_db
+    ports:
+      - ${MANAGEMENT_API_PORT}:${MANAGEMENT_API_PORT}
 
-
-  tg_bot_management:
-    volumes:
-      - ${PWD}/.var/users:/docker_app/.var/users
-    <<: *common-docker-image
-    command: ["python", "-m", "tg_bot_management"]
-    #container_name: tg_bot_management
-    restart: unless-stopped
-    environment:
-      MANAGEMENT_API_URI: management_api
-      MANAGEMENT_API_PORT: ${MANAGEMENT_API_PORT}
-
-      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-
-      DB_PATH: ""
-    depends_on:
-      - management_api
+#  tg_bot_management:
+#    volumes:
+#      - ${PWD}/.var/users:/docker_app/.var/users
+#    <<: *common-docker-image
+#    command: ["python", "-m", "tg_bot_management"]
+#    #container_name: tg_bot_management
+#    restart: unless-stopped
+#    environment:
+#      MANAGEMENT_API_URL  : ${MANAGEMENT_API_URL}
+#
+#      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
+#      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+#
+#      DB_PATH: ""
+#    depends_on:
+#      - management_api
 
 
   tg_bot_notifier:
@@ -102,7 +104,7 @@ services:
     #container_name: price_parser_uniswap
     restart: unless-stopped
     deploy:
-      replicas: 10
+      replicas: 5
     environment:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}

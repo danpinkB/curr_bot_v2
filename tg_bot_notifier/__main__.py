@@ -19,7 +19,7 @@ def to_message(message: ExchangeInstrumentDifference):
 
 
 async def publish_telegram_notification(message: ExchangeInstrumentDifference, bot) -> None:
-    for chat_id in os.listdir(f'{os.getcwd()}/data/users'):
+    for chat_id in os.listdir(f'{os.getcwd()}/.var/users'):
         await bot.send_message(chat_id, to_message(message))
 
 
@@ -28,6 +28,7 @@ async def main():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     message: ExchangeInstrumentDifference
     async for message in subscribe_notification_topic(broker):
+        logging.info(message)
         await publish_telegram_notification(message, bot)
 
 
