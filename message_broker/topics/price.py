@@ -20,7 +20,6 @@ async def subscribe_price_topic(conn: RMQConnectionAsync) -> AsyncIterator['Last
 
 
 async def publish_price_topic(conn: RMQConnectionAsync, data: 'LastPriceMessage') -> None:
-    logging.info(data)
     await conn.persistent_publish(TOPIC__PRICE, TOPIC__PRICE, data.to_bytes())
 
 

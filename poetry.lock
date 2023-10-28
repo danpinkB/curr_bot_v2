@@ -1728,6 +1728,29 @@ hiredis = ["hiredis (>=1.0.0)"]
 ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
 
 [[package]]
+name = "redis-lock"
+version = "0.2.0"
+description = "A simple pessimistic lock implementation using Redis"
+optional = false
+python-versions = "*"
+files = [
+    {file = "redis-lock-0.2.0.tar.gz", hash = "sha256:94f0bc9374cd78c33150ca49c5ce08ddbd2ddaae08166cbf381e9f8a39c096eb"},
+]
+
+[[package]]
+name = "redlock-py"
+version = "1.0.8"
+description = "Redis locking mechanism"
+optional = false
+python-versions = "*"
+files = [
+    {file = "redlock-py-1.0.8.tar.gz", hash = "sha256:0b8722c4843ddeabc2fc1dd37c05859e0da29fbce3bd1f6ecc73c98396f139ac"},
+]
+
+[package.dependencies]
+redis = "*"
+
+[[package]]
 name = "referencing"
 version = "0.30.2"
 description = "JSON Referencing + Python"
@@ -2417,4 +2440,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "15d56809474b4c8e4dae49df207bc19e067f28e1ab3aa5e830583669d3ceb009"
+content-hash = "195410c497b2c6bcf791f27b8d7157e25d15c1714827d6e093b3ca33ae99301c"

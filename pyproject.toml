@@ -22,6 +22,8 @@ httpx = "^0.25.0"
 aio-binance-library = "^2.0.7"
 redis = "^5.0.1"
 python-multipart = "^0.0.6"
+redis-lock = "^0.2.0"
+redlock-py = "^1.0.8"
 
 [build-system]
 requires = ["poetry-core"]
