@@ -85,7 +85,8 @@ async def main():
         if now-lp_time > 10:
             lp_time = time.time()
             settings = await telegram_settings_rconn.get_settings()
-        # logging.info(message)
+        if message.exchange==Exchange.UNISWAP:
+            logging.info(message)
         await _consume_callback(message, broker, settings.percent)
 
 
