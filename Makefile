@@ -17,7 +17,7 @@ build:
 
 build_sor:
 	@git clone $(GIT_REPO) $(PATH_ROUTES)
-	@docker build $(PATH_ROUTES) -t smart_router
+	@docker build $(PATH_ROUTES) -t smart-order-router
 run:
 	@docker compose up
 
