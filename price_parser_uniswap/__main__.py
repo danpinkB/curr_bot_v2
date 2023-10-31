@@ -74,7 +74,7 @@ CLI_HEIGHT = range(13)
 
 
 async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: Decimal, type_: str) -> Optional[CLIQuoteUniswap]:
-    command = f'{UNI_CLI_PATH}bin/cli quote -i {quote} -o {base} --amount {amount} --{type_} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3'
+    command = f'{UNI_CLI_PATH}/bin/cli quote -i {quote} -o {base} --amount {amount} --{type_} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3'
     args = shlex.split(command)
     process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     quote = {}

@@ -1,20 +1,18 @@
-FROM python:3.11-alpine
-
+FROM node:18-alpine as r_image
 WORKDIR /docker_app
 
-RUN apk add --update nodejs nodejs-npm
+COPY ./vendor/smart-order-router /docker_app/
 
-#COPY ./external_dependencies/smart-order-router /docker_app/
+RUN npm ci && npm run build
 
-RUN npm install && npm run build
-
+FROM nikolaik/python-nodejs:python3.11-nodejs18-alpine
 WORKDIR /docker_app
-COPY --from=r_image /docker_app /docker_app/cli/
+COPY --from=r_image /docker_app /docker_app
 RUN pip install --upgrade pip && pip install poetry
 COPY ./poetry.lock ./pyproject.toml /docker_app/
 RUN poetry install
 ENTRYPOINT ["poetry", "run"]
 ENV PYTHONPATH=/docker_app
-ENV UNI_CLI_PATH=/docker_app/cli/
+ENV UNI_CLI_PATH=/docker_app
 ENV PYTHONUNBUFFERED=1
 COPY . /docker_app
