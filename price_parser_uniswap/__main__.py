@@ -3,6 +3,7 @@ import logging
 import re
 import shlex
 import subprocess
+import traceback
 from _decimal import Decimal
 from typing import Optional, NamedTuple, Callable, Any
 
@@ -115,6 +116,7 @@ async def main():
                         logging.info(last_price)
                         await publish_price_topic(broker, last_price)
                     except Exception as ex:
+                        traceback.print_exc()
                         logging.error(ex)
                         logging.info(i.name)
 
