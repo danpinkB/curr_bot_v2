@@ -27,7 +27,7 @@ path_key = Template("{{pair}}_path_{{type}}")
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|[ \t\n"]')
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
-INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex:i for i in REQUIRED_INSTRUMENTS}
+INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex: i for i in REQUIRED_INSTRUMENTS}
 
 
 class FieldMapper(NamedTuple):
@@ -67,8 +67,8 @@ mapper = {
         apply=lambda x: x[9:]
     ),
     12: FieldMapper(
-            field_name="block_number",
-            apply=lambda x: x[12:]
+        field_name="block_number",
+        apply=lambda x: x[12:]
     )
 }
 CLI_HEIGHT = range(13)
@@ -109,7 +109,7 @@ async def main():
                         sell = await _quote(p.quote.address, p.base.address, amount, "exactOut")
 
                         last_price = LastPriceMessage(
-                            price=InstrumentPrice(buy=amount/buy.quote_in, sell=amount/sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
+                            price=InstrumentPrice(buy=amount / buy.quote_in, sell=amount / sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
                             exchange=Exchange.UNISWAP,
                             instrument=i
                         )

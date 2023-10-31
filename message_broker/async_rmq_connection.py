@@ -34,4 +34,3 @@ class RMQConnectionAsync:
                 aio_pika.Message(body=message, delivery_mode=DeliveryMode.PERSISTENT),
                 routing_key=queue_name
             )
-

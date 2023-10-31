@@ -1,5 +1,4 @@
-import os
+from abstract.env import ENV
 
-JSON_RPC_PROVIDER = os.environ['JSON_RPC_PROVIDER']
-UNI_CLI_PATH = os.environ['UNI_CLI_PATH']
-
+JSON_RPC_PROVIDER = ENV['JSON_RPC_PROVIDER']
+UNI_CLI_PATH = ENV['UNI_CLI_PATH']

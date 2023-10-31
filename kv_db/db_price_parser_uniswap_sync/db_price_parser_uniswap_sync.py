@@ -1,4 +1,3 @@
-import logging
 
 import redis
 from redlock import Redlock

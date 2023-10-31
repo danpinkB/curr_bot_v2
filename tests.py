@@ -1,4 +1,3 @@
-import json
 
 data_string= """
 Best Route:

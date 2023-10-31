@@ -1,3 +1,3 @@
-import os
+from abstract.env import ENV
 
-DB_TG_SETTINGS__DSN = os.environ['DB_TG_SETTINGS__DSN']
+DB_TG_SETTINGS__DSN = ENV['DB_TG_SETTINGS__DSN']

@@ -1,3 +1,3 @@
-import os
+from abstract.env import ENV
 
-MESSAGE_BROKER__DSN = os.environ['MESSAGE_BROKER__DSN']
+MESSAGE_BROKER__DSN = ENV['MESSAGE_BROKER__DSN']
