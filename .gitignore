@@ -2,7 +2,6 @@
 .var/
 .tmp/
 __pycache__/
-external_dependencies/
 ./
 *.py[cod]
 *$py.class
