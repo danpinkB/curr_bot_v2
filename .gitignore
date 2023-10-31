@@ -6,8 +6,6 @@ __pycache__/
 *$py.class
 .idea
 .env
-# C extensions
-cli
 # Distribution / packaging
 .Python
 .eggs/
