@@ -101,16 +101,19 @@ async def main():
             i: Instrument
 
             for p, i in INSTRUMENT_ARGUMENTS.items():
-                # logging.info(i.name)
-                if not await sync_manager.is_locked(i):
+                if sync_manager.is_unlocked(i, 12000):
+                    logging.info(i.name)
                     try:
                         buy = await _quote(p.base.address, p.quote.address, amount, "exactIn")
                         sell = await _quote(p.quote.address, p.base.address, amount, "exactOut")
-                        await publish_price_topic(broker, LastPriceMessage(
+
+                        last_price = LastPriceMessage(
                             price=InstrumentPrice(buy=amount/buy.quote_in, sell=amount/sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
                             exchange=Exchange.UNISWAP,
                             instrument=i
-                        ))
+                        )
+                        logging.info(last_price)
+                        await publish_price_topic(broker, last_price)
                     except Exception as ex:
                         logging.error(ex)
                         logging.info(i.name)

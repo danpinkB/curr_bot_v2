@@ -1,3 +1,4 @@
+import logging
 from _decimal import Decimal
 from typing import NamedTuple, AsyncIterator
 
