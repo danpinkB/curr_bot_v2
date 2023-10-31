@@ -2,7 +2,6 @@
 .var/
 .tmp/
 __pycache__/
-./
 *.py[cod]
 *$py.class
 .idea
