@@ -19,6 +19,7 @@ services:
     environment:
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
+      LOGLEVEL: 'INFO'
     depends_on:
       - message_broker
       - kv_db
@@ -33,6 +34,7 @@ services:
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       LAST_PRICE_API__PORT: ${LAST_PRICE_API__PORT}
+      LOGLEVEL: 'INFO'
     depends_on:
       - message_broker
       - kv_db
@@ -45,6 +47,7 @@ services:
       LAST_PRICE_API_URL  : ${LAST_PRICE_API_URL}
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
+      LOGLEVEL: 'INFO'
 
     healthcheck:
       test: [ "CMD", "python", "healthcheck.py" ]
@@ -87,6 +90,7 @@ services:
       REDIS_DSN__SYNC : ${REDIS_DSN__SYNC}
       DB_TG_SETTINGS__DSN: ${DB_TG_SETTINGS__DSN}
       DB_PATH: ""
+      LOGLEVEL: 'INFO'
     depends_on:
       - message_broker
 
@@ -105,7 +109,7 @@ services:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       DB_PRICE_PARSER_SYNC__DSN : ${DB_PRICE_PARSER_SYNC__DSN}
-
+      LOGLEVEL: 'INFO'
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
       - kv_db
@@ -131,6 +135,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      LOGLEVEL: 'INFO'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5672" ]
       interval: 30s

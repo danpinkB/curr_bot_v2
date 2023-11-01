@@ -94,6 +94,7 @@
 #
 #
 # if __name__ == "__main__":
-#     logging.basicConfig(level=logging.INFO)
+#     from abstract.logger_wrapper import wrap
+wrap()
 #     tg_bot_server = TGBotMainService()
 #     tg_bot_server.run_polling()
