@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import logging
 import traceback
 from _decimal import Decimal
@@ -15,7 +14,8 @@ from message_broker.message_broker import message_broker
 from message_broker.topics.price import publish_price_topic, InstrumentPrice, LastPriceMessage
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.BINANCE for ei in v))
-SYMBOL_INSTRUMENT = {INSTRUMENTS[ExchangeInstrument(Exchange.BINANCE, i)].cex.base.symbol+INSTRUMENTS[ExchangeInstrument(Exchange.BINANCE, i)].cex.quote.symbol: i for i in REQUIRED_INSTRUMENTS}
+SYMBOL_INSTRUMENT = {INSTRUMENTS[ExchangeInstrument(Exchange.BINANCE, i)].cex.base.symbol +
+                     INSTRUMENTS[ExchangeInstrument(Exchange.BINANCE, i)].cex.quote.symbol: i for i in REQUIRED_INSTRUMENTS}
 
 
 class SocketHandler:
@@ -49,5 +49,3 @@ async def main():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
-
-

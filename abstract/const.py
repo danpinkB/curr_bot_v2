@@ -30,6 +30,7 @@ class TokenDecimals(Enum):
     D9 = Decimal(1000000000)
     D6 = Decimal(1000000)
 
+
 @unique
 class EthTokens(Enum):
     ETH = DEXToken(address=to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"), symbol="ETH", decimals=TokenDecimals.D16.value)
@@ -153,5 +154,3 @@ for k in INSTRUMENTS.keys():
     INSTRUMENTS__EXCHANGES[i] = {e} if i not in INSTRUMENTS__EXCHANGES else set([*INSTRUMENTS__EXCHANGES[i], e])
 
 INSTRUMENTS__EXCHANGES = MappingProxyType(INSTRUMENTS__EXCHANGES)
-
-

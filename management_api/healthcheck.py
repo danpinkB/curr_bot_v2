@@ -10,5 +10,5 @@ try:
     conn.close()
 
     sys.exit(is_dead)
-except Exception as e:
+except Exception:
     sys.exit(1)

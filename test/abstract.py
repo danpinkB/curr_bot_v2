@@ -13,7 +13,8 @@ web3_conn = web3.Web3(web3.HTTPProvider("http://srv22130.dus4.fastwebserver.de:8
 class MyTestCase(unittest.TestCase):
     def __init__(self, methodName: str):
         super().__init__(methodName)
-    #test ExchangeInstrumentDifference
+    # test ExchangeInstrumentDifference
+
     def test(self) -> None:
         model = ExchangeInstrumentDifference(
             instrument=Instrument.ARB__USDT,

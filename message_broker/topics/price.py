@@ -1,8 +1,7 @@
-import logging
 from _decimal import Decimal
 from typing import NamedTuple, AsyncIterator
 
-from aio_pika.abc import AbstractIncomingMessage, AbstractQueueIterator
+from aio_pika.abc import AbstractIncomingMessage
 
 from abstract.exchange import Exchange
 from abstract.instrument import Instrument
