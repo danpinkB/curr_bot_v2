@@ -1,7 +1,7 @@
 FROM python:3.11-alpine3.18
 
 RUN apk update \
-    && apk add --no-cache make gcc libffi-dev musl-dev build-base mpc1-dev g++ gcc gpgme-dev libc-dev bash nodejs npm \
+    && apk add --no-cache make gcc libffi-dev musl-dev build-base mpc1-dev g++ gcc gpgme-dev libc-dev bash \
     && pip install --upgrade pip \
     && pip install poetry
 
