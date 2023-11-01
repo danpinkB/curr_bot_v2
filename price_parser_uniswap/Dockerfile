@@ -16,6 +16,6 @@ RUN poetry install
 
 ENTRYPOINT ["poetry", "run"]
 ENV PYTHONPATH=/docker_app
-ENV UNI_CLI_PATH=/docker_app
+ENV UNI_CLI_PATH=/docker_app/vendor/smart-order-router
 ENV PYTHONUNBUFFERED=1
 COPY . /docker_app

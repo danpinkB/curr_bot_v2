@@ -47,5 +47,6 @@ async def main():
     await ws.subscription_streams(res, SocketHandler(broker).handle_socket_message)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    from abstract.logger_wrapper import wrap_logger
+    wrap_logger()
     asyncio.run(main())

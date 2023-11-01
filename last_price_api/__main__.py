@@ -86,5 +86,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    from abstract.logger_wrapper import wrap_logger
+    wrap_logger()
     asyncio.run(main())

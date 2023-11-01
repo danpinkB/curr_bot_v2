@@ -33,6 +33,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    from abstract.logger_wrapper import wrap_logger
+    wrap_logger()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

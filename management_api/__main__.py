@@ -39,5 +39,6 @@ async def get_exchanges() -> str:
 
 if __name__ == "__main__":
     telegram_settings_rconn = db_tg_settings()
-    logging.basicConfig(level=logging.INFO)
+    from abstract.logger_wrapper import wrap_logger
+    wrap_logger()
     uvicorn.run(app, host="0.0.0.0", port=MANAGEMENT_API_PORT)
