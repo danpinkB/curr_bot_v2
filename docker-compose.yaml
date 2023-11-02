@@ -11,21 +11,9 @@ x-common-docker-image: &common-docker-image
     dockerfile: ./Dockerfile
 
 services:
-  price_parser_binance:
-    <<: *common-docker-image
-    command: ["python", "-m", "price_parser_binance"]
-    container_name: price_parser_binance
-    restart: unless-stopped
-    environment:
-      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
-      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
-      LOGLEVEL: 'INFO'
-    depends_on:
-      - message_broker
-      - kv_db
+  # INDICATOR
 
-
-  last_price_api:
+  last_price_api:  # TODO: rename indicator_maker
     <<: *common-docker-image
     command: ["python", "-m", "last_price_api"]
     container_name: last_price_api
@@ -38,6 +26,17 @@ services:
     depends_on:
       - message_broker
       - kv_db
+
+  # EXECUTION
+
+  execution_order_api_binance:
+    <<: *common-docker-image
+
+  execution_order_api_uniswap:
+    <<: *common-docker-image
+
+  # MANAGEMENT
+
   management_api:
     <<: *common-docker-image
     command: ["python", "-m", "management_api"]
@@ -48,7 +47,6 @@ services:
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
       LOGLEVEL: 'INFO'
-
     healthcheck:
       test: [ "CMD", "python", "healthcheck.py" ]
       interval: 10s
@@ -58,25 +56,12 @@ services:
     depends_on:
       - kv_db
 
-#  tg_bot_management:
-#    volumes:
-#      - ${PWD}/.var/users:/docker_app/.var/users
-#    <<: *common-docker-image
-#    command: ["python", "-m", "tg_bot_management"]
-#    #container_name: tg_bot_management
-#    restart: unless-stopped
-#    environment:
-#      MANAGEMENT_API_URL  : ${MANAGEMENT_API_URL}
-#
-#      TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
-#      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-#
-#      DB_PATH: ""
-#    depends_on:
-#      - management_api
+  # NOTIFIER
 
+  notifier_routing_api:
+    <<: *common-docker-image
 
-  tg_bot_notifier:
+  tg_bot_notifier:  # TODO: rename notifier_tg_bot
     volumes:
       - ${PWD}/.var/users:/docker_app/.var/users
     <<: *common-docker-image
@@ -94,8 +79,22 @@ services:
     depends_on:
       - message_broker
 
+  # MINER
 
-  price_parser_uniswap:
+  price_parser_binance:  # TODO: rename miner_price_parser_binance
+    <<: *common-docker-image
+    command: ["python", "-m", "price_parser_binance"]
+    container_name: price_parser_binance
+    restart: unless-stopped
+    environment:
+      DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
+      LOGLEVEL: 'INFO'
+    depends_on:
+      - message_broker
+      - kv_db
+
+  price_parser_uniswap:  # TODO: rename miner_price_parser_uniswap
     image: price_parser_uniswap
     build:
       context: .
@@ -115,6 +114,10 @@ services:
       - kv_db
       - message_broker
 
+  # COMMON
+
+  db:
+    image: postgres:15-alpine3.18
 
   kv_db:
     image: 'redislabs/redismod'
@@ -124,7 +127,6 @@ services:
     restart: unless-stopped
 #    ports:
 #      - "6379:6379"
-
 
   message_broker:
     image: 'rabbitmq:3-management'
