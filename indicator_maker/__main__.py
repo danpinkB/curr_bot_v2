@@ -13,7 +13,7 @@ from aiohttp import web
 from abstract.const import INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import Instrument
-from last_price_api.env import LAST_PRICE_API__PORT
+from indicator_maker.env import LAST_PRICE_API__PORT
 from message_broker.async_rmq_connection import RMQConnectionAsync
 from message_broker.message_broker import message_broker
 from message_broker.topics.notification import ExchangeInstrumentDifference, publish_notification_topic
@@ -44,8 +44,9 @@ async def send_difference(broker: RMQConnectionAsync, instrument: Instrument, cu
         sell_exchange=exchange,
         sell_price=price.sell,
     )
+    logging.info(f'{instrument.name} {price_difference} {price_difference.calc_difference()}')
     if current_price.buy < price.sell and price_difference.calc_difference() > required_percent:
-        logging.info(instrument.name, price_difference.calc_difference())
+
         await publish_notification_topic(broker, price_difference)
 
 

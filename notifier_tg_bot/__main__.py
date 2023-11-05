@@ -7,7 +7,7 @@ from telegram import Bot
 from abstract.const import EXCHANGES
 from message_broker.message_broker import message_broker
 from message_broker.topics.notification import ExchangeInstrumentDifference, subscribe_notification_topic
-from tg_bot_notifier.env import TELEGRAM_BOT_TOKEN
+from notifier_tg_bot.env import TELEGRAM_BOT_TOKEN
 
 
 def to_message(message: ExchangeInstrumentDifference):

@@ -2,6 +2,7 @@ from _decimal import Decimal
 from typing import NamedTuple, AsyncIterator
 
 from aio_pika.abc import AbstractIncomingMessage
+from pydantic import BaseModel
 
 from abstract.exchange import Exchange
 from abstract.instrument import Instrument
@@ -29,7 +30,7 @@ class InstrumentPrice(NamedTuple):
     sell_fee: Decimal
 
 
-class LastPriceMessage(NamedTuple):
+class LastPriceMessage(BaseModel):
     exchange: Exchange
     instrument: Instrument
     price: InstrumentPrice

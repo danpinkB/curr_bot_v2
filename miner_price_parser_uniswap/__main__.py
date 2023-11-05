@@ -17,7 +17,7 @@ from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams,
 from kv_db.db_price_parser_uniswap_sync.db_price_parser_uniswap_sync import db_price_parser_uniswap_sync
 from message_broker.message_broker import message_broker
 from message_broker.topics.price import LastPriceMessage, InstrumentPrice, publish_price_topic
-from price_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
+from miner_price_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
 
 NAME = "UNIv3"
 

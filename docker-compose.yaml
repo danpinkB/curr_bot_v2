@@ -13,10 +13,10 @@ x-common-docker-image: &common-docker-image
 services:
   # INDICATOR
 
-  last_price_api:  # TODO: rename indicator_maker
+  indicator_maker:
     <<: *common-docker-image
-    command: ["python", "-m", "last_price_api"]
-    container_name: last_price_api
+    command: ["python", "-m", "indicator_maker"]
+    container_name: indicator_maker
     restart: always
     environment:
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
@@ -61,12 +61,12 @@ services:
   notifier_routing_api:
     <<: *common-docker-image
 
-  tg_bot_notifier:  # TODO: rename notifier_tg_bot
+  notifier_tg_bot:
     volumes:
       - ${PWD}/.var/users:/docker_app/.var/users
     <<: *common-docker-image
-    command: ["python", "-m", "tg_bot_notifier"]
-    container_name: tg_bot_notifier
+    command: ["python", "-m", "notifier_tg_bot"]
+    container_name: notifier_tg_bot
     restart: unless-stopped
     environment:
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
@@ -81,10 +81,10 @@ services:
 
   # MINER
 
-  price_parser_binance:  # TODO: rename miner_price_parser_binance
+  miner_price_parser_binance:
     <<: *common-docker-image
-    command: ["python", "-m", "price_parser_binance"]
-    container_name: price_parser_binance
+    command: ["python", "-m", "miner_price_parser_binance"]
+    container_name: miner_price_parser_binance
     restart: unless-stopped
     environment:
       DB_TG_SETTINGS__DSN : ${DB_TG_SETTINGS__DSN}
@@ -94,13 +94,13 @@ services:
       - message_broker
       - kv_db
 
-  price_parser_uniswap:  # TODO: rename miner_price_parser_uniswap
+  miner_price_parser_uniswap:
     image: price_parser_uniswap
     build:
       context: .
-      dockerfile: ./price_parser_uniswap/Dockerfile
-    command: ["python", "-m", "price_parser_uniswap"]
-    #container_name: price_parser_uniswap
+      dockerfile: miner_price_parser_uniswap/Dockerfile
+    command: ["python", "-m", "miner_price_parser_uniswap"]
+    #container_name: miner_price_parser_uniswap
     restart: unless-stopped
     deploy:
       replicas: 3
@@ -115,10 +115,6 @@ services:
       - message_broker
 
   # COMMON
-
-  db:
-    image: postgres:15-alpine3.18
-
   kv_db:
     image: 'redislabs/redismod'
     volumes:

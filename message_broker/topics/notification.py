@@ -1,7 +1,9 @@
 from _decimal import Decimal
-from typing import NamedTuple, AsyncIterator
+from typing import AsyncIterator
 
 from aio_pika.abc import AbstractIncomingMessage
+from pydantic import BaseModel
+
 from abstract.exchange import Exchange
 from abstract.instrument import Instrument
 from message_broker.async_rmq_connection import RMQConnectionAsync
@@ -21,7 +23,7 @@ async def publish_notification_topic(conn: RMQConnectionAsync, data: 'ExchangeIn
     await conn.persistent_publish(TOPIC__NOTIFICATION, TOPIC__NOTIFICATION, data.to_bytes())
 
 
-class ExchangeInstrumentDifference(NamedTuple):
+class ExchangeInstrumentDifference(BaseModel):
     instrument: Instrument
     buy_exchange: Exchange
     buy_price: Decimal
