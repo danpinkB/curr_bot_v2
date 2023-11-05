@@ -4,7 +4,11 @@ from typing import Type, TypeVar
 import aio_pika
 from aio_pika.abc import AbstractRobustConnection, ExchangeType, DeliveryMode, AbstractQueueIterator
 
+from abstract.logger_wrapper import wrap_logger
+
 T = TypeVar('T', bound='RMQConnectionAsync')
+
+logger = wrap_logger(__file__)
 
 
 class RMQConnectionAsync:
@@ -34,3 +38,4 @@ class RMQConnectionAsync:
                 aio_pika.Message(body=message, delivery_mode=DeliveryMode.PERSISTENT),
                 routing_key=queue_name
             )
+            logger.info(f'published message to "{exchange_name}" with routing key "{queue_name}"')

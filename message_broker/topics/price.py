@@ -28,6 +28,8 @@ class InstrumentPrice(NamedTuple):
     sell: Decimal
     buy_fee: Decimal
     sell_fee: Decimal
+    # TODO: timestamp
+    # TODO: quantities
 
 
 class LastPriceMessage(BaseModel):
