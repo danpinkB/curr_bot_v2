@@ -1,3 +1,0 @@
-import os
-
-DB_PRICE_PARSER_SYNC__DSN = os.environ['DB_PRICE_PARSER_SYNC__DSN']

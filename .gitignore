@@ -135,11 +135,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project db_settings
+# Spyder project settings_db
 .spyderproject
 .spyproject
 
-# Rope project db_settings
+# Rope project settings_db
 .ropeproject
 
 # mkdocs documentation

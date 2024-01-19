@@ -1,7 +1,9 @@
 from aioredis import Redis
 
+from inmemory_storage.sync_db.env import SYNC_DB__DSN
 
-class SyncDbRConnection:
+
+class SyncDB:
     def __init__(self, dsn: str):
         self._conn: Redis = Redis.from_url(dsn)
 
@@ -12,3 +14,5 @@ class SyncDbRConnection:
         return await self._conn.get(action_name)
 
 
+def sync_db():
+    return SyncDB(SYNC_DB__DSN)

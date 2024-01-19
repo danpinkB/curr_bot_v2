@@ -6,8 +6,8 @@ from fastapi import FastAPI
 
 from abstract.const import EXCHANGES
 from abstract.instrument import Instrument
-from kv_db.db_tg_settings.db_tg_settings import db_tg_settings
-from kv_db.db_tg_settings.structures import TelegramSettings
+from inmemory_storage.tg_settings_db.tg_settings_db import db_tg_settings
+from inmemory_storage.tg_settings_db.structures import TelegramSettings
 from management_api.env import MANAGEMENT_API_PORT, LAST_PRICE_API_URL
 
 
@@ -21,12 +21,12 @@ async def get_price(instrument: Instrument) -> str:
             return await response.json()
 
 
-@app.put("/telegram/db_settings")
+@app.put("/telegram/settings_db")
 async def set_settings(settings: TelegramSettings) -> None:
     await telegram_settings_rconn.set_settings(settings)
 
 
-@app.get("/telegram/db_settings")
+@app.get("/telegram/settings_db")
 async def get_settings() -> TelegramSettings:
     return await telegram_settings_rconn.get_settings()
 

@@ -4,15 +4,18 @@ import re
 import shlex
 import subprocess
 from _decimal import Decimal
-from typing import Optional, NamedTuple, Callable, Any
+from typing import Optional, NamedTuple, Callable, Any, Final
 
 import web3
 from eth_typing import ChecksumAddress
 from jinja2 import Template
 
+from inmemory_storage.sync_db.sync_db import sync_db
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams, Instrument
+from inmemory_storage.kv_db import kv_db
+from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
 from message_broker.message_broker import message_broker
 from message_broker.topics.price import LastPriceMessage, InstrumentPrice, publish_price_topic
 from price_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
@@ -64,8 +67,8 @@ mapper = {
         apply=lambda x: x[9:]
     ),
     12: FieldMapper(
-            field_name="block_number",
-            apply=lambda x: x[12:]
+        field_name="block_number",
+        apply=lambda x: x[12:]
     )
 }
 cli_height = range(13)
@@ -84,6 +87,9 @@ async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: int, typ
 
 
 async def main():
+    setting_db: Final = tg_settings_db()
+    path_db: Final = kv_db()
+    locker_db: Final = sync_db()
     curr_block_number = 0
     broker = await message_broker()
     # await sender.connect()
@@ -93,14 +99,17 @@ async def main():
             i: Instrument
 
             for p, i in INSTRUMENT_ARGUMENTS.items():
-                buy = await _quote(p.base.address, p.quote.address, 10000, "exactIn")
-                sell = await _quote(p.quote.address, p.base.address, 10000, "exactOut")
-
-                await publish_price_topic(broker, LastPriceMessage(
-                    price=InstrumentPrice(buy=buy.quote_in, sell=sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
-                    exchange=Exchange.UNISWAP,
-                    instrument=i
-                ))
+                if not await locker_db.is_lock(i.value):
+                    await locker_db.lock_action(i.value, 60000)
+                    buy_path = await _quote(p.base.address, p.quote.address, 10000, "exactIn")
+                    sell_path = await _quote(p.quote.address, p.base.address, 10000, "exactOut")
+                    print(buy_path)
+                    print(sell_path)
+                    # await publish_price_topic(broker, LastPriceMessage(
+                    #     price=InstrumentPrice(buy=buy.quote_in, sell=sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
+                    #     exchange=Exchange.UNISWAP,
+                    #     instrument=i
+                    # ))
 
             curr_block_number = connection.eth.block_number
 

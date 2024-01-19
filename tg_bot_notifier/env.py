@@ -1,14 +1,14 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-RABBITMQ_DSN__CONSUMER = os.environ.get("RABBITMQ_DSN__CONSUMER")
-RABBITMQ_QUE__CONSUMER = os.environ.get("RABBITMQ_QUE__CONSUMER")
+MESSAGE_BROKER_CONSUMER__DSN = os.environ.get("MESSAGE_BROKER_CONSUMER__DSN")
+MESSAGE_BROKER_CONSUMER__QUE = os.environ.get("MESSAGE_BROKER_CONSUMER__QUE")
 
 TELEGRAM_BOT_PASSWORD = os.environ.get("TELEGRAM_BOT_PASSWORD")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-REDIS_DSN__SYNC  = os.environ.get("REDIS_DSN__SYNC")
-REDIS_DSN__SETTINGS = os.environ.get("REDIS_DSN__SETTINGS")
+SYNC_DB__DSN  = os.environ.get("SYNC_DB__DSN")
+SETTINGS_DB__DSN = os.environ.get("SETTINGS_DB__DSN")
 
 DB_PATH = os.environ.get("DB_PATH")
 
