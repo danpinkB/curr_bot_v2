@@ -10,6 +10,7 @@ import web3
 from eth_typing import ChecksumAddress
 from jinja2 import Template
 
+from abstract.path_chain import PathChain, CLIQuoteUniswap
 from inmemory_storage.sync_db.sync_db import sync_db
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
 from abstract.exchange import Exchange
@@ -29,15 +30,6 @@ ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|[ \t\n"]')
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
 INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex:i for i in REQUIRED_INSTRUMENTS}
-
-
-class CLIQuoteUniswap(NamedTuple):
-    best_route: str
-    quote_in: Decimal
-    gas_quote: Decimal
-    gas_usd: Decimal
-    call_data: str
-    block_number: int
 
 
 class FieldMapper(NamedTuple):
@@ -101,10 +93,10 @@ async def main():
             for p, i in INSTRUMENT_ARGUMENTS.items():
                 if not await locker_db.is_lock(i.value):
                     await locker_db.lock_action(i.value, 60000)
-                    buy_path = await _quote(p.base.address, p.quote.address, 10000, "exactIn")
-                    sell_path = await _quote(p.quote.address, p.base.address, 10000, "exactOut")
-                    print(buy_path)
-                    print(sell_path)
+                    buy_path = PathChain.from_cli(await _quote(p.base.address, p.quote.address, 10000, "exactIn"))
+                    sell_path = PathChain.from_cli(await _quote(p.quote.address, p.base.address, 10000, "exactOut"))
+                    path_db.set(f'{i.value}exactIn', buy_path)
+                    path_db.set(f'{i.value}exactOut', sell_path)
                     # await publish_price_topic(broker, LastPriceMessage(
                     #     price=InstrumentPrice(buy=buy.quote_in, sell=sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
                     #     exchange=Exchange.UNISWAP,
