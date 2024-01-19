@@ -19,7 +19,7 @@ from inmemory_storage.kv_db import kv_db
 from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
 from message_broker.message_broker import message_broker
 from message_broker.topics.price import LastPriceMessage, InstrumentPrice, publish_price_topic
-from price_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
+from path_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
 
 NAME = "UNIv3"
 

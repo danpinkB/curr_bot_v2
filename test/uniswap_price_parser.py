@@ -6,7 +6,7 @@ import web3
 from net_node import uni_v3_quoter_abi
 from obs_shared.mytypes.path_row import PathRow
 from obs_shared.mytypes.token_row import TokenRow
-from price_parser_uniswap.const import UNI_V3_QUOTER_ADDRESS
+from path_parser_uniswap.const import UNI_V3_QUOTER_ADDRESS
 
 web3_conn = web3.Web3(web3.HTTPProvider("http://srv22130.dus4.fastwebserver.de:8545"))
 

@@ -107,8 +107,8 @@ services:
 
   price_parser_uniswap:
     <<: *common-docker-image
-    command: ["python", "-m", "price_parser_uniswap"]
-    container_name: price_parser_uniswap
+    command: ["python", "-m", "path_parser_uniswap"]
+    container_name: path_parser_uniswap
     restart: unless-stopped
     deploy:
       replicas: 3
