@@ -1,3 +1,3 @@
-import os
+from abstract.env import ENV
 
-SYNC_DB__DSN = os.environ['SYNC_DB__DSN']
+SYNC_DB__DSN = ENV['SYNC_DB__DSN']

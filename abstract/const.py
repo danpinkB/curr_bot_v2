@@ -135,9 +135,17 @@ INSTRUMENTS = MappingProxyType({
     ExchangeInstrument(Exchange.BINANCE, Instrument.APE__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.APE.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.POWR__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.POWR.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.BOND__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.BOND.value, BinanceTokens.USDT.value)),
-
-
 })
+
+SYMBOL_INSTRUMENT = {}
+
+for instrument in Instrument:
+    base, quote = instrument.name.split("__")
+    SYMBOL_INSTRUMENT[f'{base}{quote}'] = instrument
+    SYMBOL_INSTRUMENT[f'{quote}{base}'] = instrument
+
+SYMBOL_INSTRUMENT = MappingProxyType(SYMBOL_INSTRUMENT)
+
 
 INSTRUMENTS_CONNECTIVITY = {}
 

@@ -1,3 +1,3 @@
-import os
+from abstract.env import ENV
 
-KV_DB__DSN = os.environ['KV_DB__DSN']
+KV_DB__DSN = ENV['KV_DB__DSN']
