@@ -18,8 +18,8 @@ services:
     restart: unless-stopped
     environment:
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      PRICE_DB__DSN : ${PRICE_DB__DSN}
-      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER_SENDER__DSN}
+      #PRICE_DB__DSN : ${PRICE_DB__DSN}
+      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER__DSN}
       MESSAGE_BROKER_SENDER__QUE: 'price'
     depends_on:
       - message_broker
@@ -32,14 +32,14 @@ services:
     container_name: last_price_api
     restart: unless-stopped
     environment:
-      MESSAGE_BROKER_CONSUMER__DSN : ${MESSAGE_BROKER_CONSUMER__DSN}
+      MESSAGE_BROKER_CONSUMER__DSN : ${MESSAGE_BROKER__DSN}
       MESSAGE_BROKER_CONSUMER__QUE : 'price'
 
-      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER_SENDER__DSN}
+      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER__DSN}
       MESSAGE_BROKER_SENDER__QUE : 'notification'
 
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      PRICE_DB__DSN : ${PRICE_DB__DSN}
+      #PRICE_DB__DSN : ${PRICE_DB__DSN}
     depends_on:
       - message_broker
       - kv_db
@@ -52,7 +52,7 @@ services:
     restart: unless-stopped
     environment:
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      PRICE_DB__DSN : ${PRICE_DB__DSN}
+      #PRICE_DB__DSN : ${PRICE_DB__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
 
     healthcheck:
@@ -95,10 +95,10 @@ services:
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
 
-      MESSAGE_BROKER_CONSUMER__DSN : ${MESSAGE_BROKER_CONSUMER__DSN}
+      MESSAGE_BROKER_CONSUMER__DSN : ${MESSAGE_BROKER__DSN}
       MESSAGE_BROKER_CONSUMER__QUE: 'notification'
 
-      SYNC_DB__DSN : ${SYNC_DB__DSN}
+      SYNC_DB__DSN : ${NOTIFIER_SYNC_DB__DSN}
       SETTINGS_DB__DSN: ${SETTINGS_DB__DSN}
       DB_PATH: ""
     depends_on:
@@ -107,8 +107,8 @@ services:
 
   price_parser_uniswap:
     <<: *common-docker-image
-    command: ["python", "-m", "path_parser_uniswap"]
-    container_name: path_parser_uniswap
+    command: ["python", "-m", "price_parser_uniswap"]
+#    container_name: price_parser_uniswap
     restart: unless-stopped
     deploy:
       replicas: 3
@@ -116,15 +116,29 @@ services:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
       PATH_DB__DSN : ${PATH_DB__DSN}
-      PRICE_DB__DSN : ${PRICE_DB__DSN}
-      SYNC_DB__DSN : ${SYNC_DB__DSN}
+      SYNC_DB__DSN : ${PRICE_SYNC_DB__DSN}
 
-      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER_SENDER__DSN}
+      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER__DSN}
       MESSAGE_BROKER_SENDER__QUE : 'price'
     depends_on:
       - kv_db
       - message_broker
 
+  path_parser_uniswap:
+    <<: *common-docker-image
+    command: [ "python", "-m", "path_parser_uniswap" ]
+#    container_name: path_parser_uniswap
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+    environment:
+      JSON_RPC_PROVIDER: ${JSON_RPC_PROVIDER}
+      SETTINGS_DB__DSN: ${SETTINGS_DB__DSN}
+      PATH_DB__DSN: ${PATH_DB__DSN}
+      SYNC_DB__DSN: ${PATH_SYNC_DB__DSN}
+    depends_on:
+      - kv_db
+      - message_broker
 
   kv_db:
     image: 'redislabs/redismod'
@@ -135,6 +149,16 @@ services:
     ports:
       - "6379:6379"
 
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: ghcr.io/joeferner/redis-commander:latest
+    build: .
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:kv_db:6379
+    ports:
+      - "8081:8081"
 
   message_broker:
     image: 'rabbitmq:3-management'

@@ -1,5 +1,5 @@
 FROM smart_router as r_image
-FROM nikolaik/python-nodejs:python3.10-nodejs18-alpine
+FROM nikolaik/python-nodejs:python3.11-nodejs18-alpine
 WORKDIR /docker_app
 COPY --from=r_image /docker_app /docker_app/cli/
 RUN pip install --upgrade pip && pip install poetry

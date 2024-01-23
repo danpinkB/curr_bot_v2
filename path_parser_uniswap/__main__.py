@@ -21,9 +21,6 @@ from path_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
 
 NAME = "UNIv3"
 
-web3_connection = web3.Web3(web3.HTTPProvider(JSON_RPC_PROVIDER))
-path_key = Template("{{pair}}_path_{{type}}")
-
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|[ \t\n"]')
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
@@ -121,7 +118,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    connection = web3.Web3(web3.HTTPProvider(JSON_RPC_PROVIDER))
     logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
