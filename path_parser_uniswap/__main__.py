@@ -16,7 +16,6 @@ from abstract.path_chain import PathChain, CLIQuoteUniswap, QuoteType
 from inmemory_storage.path_db.path_db import path_db
 from inmemory_storage.sync_db.sync_db import sync_db
 from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
-from message_broker.message_broker import message_broker
 from path_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
 
 NAME = "UNIv3"
@@ -78,7 +77,7 @@ async def main():
     path_db_ins: Final = path_db()
     locker_db: Final = sync_db()
     curr_block_number = 0
-    broker = await message_broker()
+    # broker = await message_broker()
     # await sender.connect()
     p: DEXExchangeInstrumentParams
     i: Instrument
@@ -118,6 +117,8 @@ async def main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    print("HI")
+    logging.basicConfig(level=logging.DEBUG)
+    print("HIHIHIH")
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

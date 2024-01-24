@@ -1,6 +1,6 @@
 from typing import Optional
 
-from aioredis import Redis
+from redis.asyncio import Redis
 
 from abstract.instrument import Instrument
 from abstract.path_chain import PathChain, QuoteType

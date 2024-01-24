@@ -125,7 +125,10 @@ services:
       - message_broker
 
   path_parser_uniswap:
-    <<: *common-docker-image
+#    <<: *common-docker-image
+    build:
+      context: .
+      dockerfile: ./path_parser_uniswap/Dockerfile
     command: [ "python", "-m", "path_parser_uniswap" ]
 #    container_name: path_parser_uniswap
     restart: unless-stopped

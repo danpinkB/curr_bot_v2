@@ -1,3 +1,5 @@
+import logging
+
 from abstract.env import ENV
 
-TG_SETTINGS_DB__DSN = ENV['TG_SETTINGS_DB__DSN']
+SETTINGS_DB__DSN = ENV['SETTINGS_DB__DSN']

@@ -1,5 +1,4 @@
-from aioredis import Redis
-
+from redis.asyncio import Redis
 from inmemory_storage.tg_settings_db.structures import TelegramSettings
 
 SETTINGS_KEY = "SETTINGS"
