@@ -12,7 +12,7 @@ from jinja2 import Template
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams, Instrument
-from abstract.path_chain import PathChain, CLIQuoteUniswap, QuoteType
+from abstract.path_chain import PathChain, CLIQuoteUniswap, QuoteType, InstrumentRoute
 from inmemory_storage.path_db.path_db import path_db
 from inmemory_storage.sync_db.sync_db import sync_db
 from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
@@ -20,7 +20,7 @@ from path_parser_uniswap.env import JSON_RPC_PROVIDER, UNI_CLI_PATH
 
 NAME = "UNIv3"
 
-ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|[ \t\n"]')
+ansi_escape = re.compile(r'^\s+|\s+$')
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
 INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex:i for i in REQUIRED_INSTRUMENTS}
@@ -86,7 +86,7 @@ async def main():
             if not await locker_db.is_lock(i.value):
                 await locker_db.lock_action(i.value, 60000)
                 await path_db_ins.set_path(
-                    PathChain.from_cli(
+                    InstrumentRoute.from_cli(
                         data=await _quote(
                             base=p.base.address,
                             quote=p.quote.address,
@@ -98,7 +98,7 @@ async def main():
                     )
                 )
                 await path_db_ins.set_path(
-                    PathChain.from_cli(
+                    InstrumentRoute.from_cli(
                         data=await _quote(
                             base=p.quote.address,
                             quote=p.base.address,
@@ -117,8 +117,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    print("HI")
     logging.basicConfig(level=logging.DEBUG)
-    print("HIHIHIH")
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

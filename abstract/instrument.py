@@ -1,4 +1,4 @@
-from enum import unique, Enum
+from enum import unique, Enum, IntEnum
 from typing import Set, NamedTuple, Optional
 
 from abstract.exchange import Exchange
@@ -6,7 +6,7 @@ from abstract.token import CEXToken, DEXToken
 
 
 @unique
-class Instrument(Enum):
+class Instrument(IntEnum):
     ETH__USDT = 1
     ARB__USDT = 2
     BTC__USDT = 3

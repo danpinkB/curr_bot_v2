@@ -1,12 +1,13 @@
 import json
+import logging
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import NamedTuple, List
 
 from abstract.instrument import Instrument
 
 
-class QuoteType(Enum):
+class QuoteType(IntEnum):
     exactIn = 0
     exactOut = 1
 
@@ -21,28 +22,35 @@ class CLIQuoteUniswap(NamedTuple):
 
 
 class PathChain(NamedTuple):
-    instrument: Instrument
     version: str
     percent: float
-    qtype: QuoteType
     pools: List[str]
 
+
+class InstrumentRoute(NamedTuple):
+    instrument: Instrument
+    qtype: QuoteType
+    pathes: List[PathChain]
+
     @staticmethod
-    def from_cli(data: CLIQuoteUniswap, instrument: Instrument, qtype: QuoteType) -> List['PathChain']:
-        return [
-            PathChain(
-                instrument=instrument,
-                version=parts[0][1:-1],
-                percent=float(parts[1][:-1]),
-                pools=[pool[1:-1] for pool in parts[3:] if pool.startswith('[') and pool.endswith(']')],
-                qtype=qtype
-            )
-            for parts in [entry.split(' ') for entry in data.best_route.split(', ')]
-        ]
+    def from_cli(data: CLIQuoteUniswap, instrument: Instrument, qtype: QuoteType) -> 'InstrumentRoute':
+        # logging.info(data)
+        return InstrumentRoute(
+            instrument=instrument,
+            qtype=qtype,
+            pathes=[
+                PathChain(
+                    version=parts[0][1:-1],
+                    percent=float(parts[1][:-1]),
+                    pools=[pool[1:-1] for pool in parts[3:] if pool.startswith('[') and pool.endswith(']')],
+                )
+                for parts in [entry.split(' ') for entry in data.best_route.split(', ')]
+            ]
+        )
 
     def to_str(self) -> str:
         return json.dumps(self._asdict())
 
     @classmethod
-    def from_str(cls, data: str) -> 'PathChain':
+    def from_str(cls, data: str) -> 'InstrumentRoute':
         return cls(**json.loads(data))
