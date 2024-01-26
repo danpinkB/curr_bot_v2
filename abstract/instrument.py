@@ -10,7 +10,7 @@ class Instrument(IntEnum):
     ETH__USDT = 1
     ARB__USDT = 2
     BTC__USDT = 3
-    XRP__USDT = 4
+    # XRP__USDT = 4
     SOL__USDT = 5
     TON__USDT = 6
     TRX__USDT = 7

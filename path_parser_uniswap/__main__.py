@@ -65,11 +65,16 @@ async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: float, q
     args = shlex.split(command)
     process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     quote = {}
+    line: bytes
     for ind in cli_height:
         line = await process.stdout.readline()
         if line and mapper.get(ind):
             quote[mapper[ind].field_name] = mapper[ind].apply(ansi_escape.sub('', line.decode("utf-8")))
-    return CLIQuoteUniswap(**quote)
+    try:
+        return CLIQuoteUniswap(**quote)
+    except Exception as ex:
+        logging.info(command)
+        logging.info(quote)
 
 
 async def main():
@@ -79,17 +84,17 @@ async def main():
     curr_block_number = 0
     # broker = await message_broker()
     # await sender.connect()
-    p: DEXExchangeInstrumentParams
+    instrument_params: DEXExchangeInstrumentParams
     i: Instrument
     while True:
-        for p, i in INSTRUMENT_ARGUMENTS.items():
+        for instrument_params, i in INSTRUMENT_ARGUMENTS.items():
             if not await locker_db.is_lock(i.value):
                 await locker_db.lock_action(i.value, 60000)
-                await path_db_ins.set_path(
+                await path_db_ins.set_route(
                     InstrumentRoute.from_cli(
                         data=await _quote(
-                            base=p.base.address,
-                            quote=p.quote.address,
+                            base=instrument_params.base.address,
+                            quote=instrument_params.quote.address,
                             amount=10000,
                             qtype=QuoteType.exactIn
                         ),
@@ -97,11 +102,11 @@ async def main():
                         qtype=QuoteType.exactIn
                     )
                 )
-                await path_db_ins.set_path(
+                await path_db_ins.set_route(
                     InstrumentRoute.from_cli(
                         data=await _quote(
-                            base=p.quote.address,
-                            quote=p.base.address,
+                            base=instrument_params.quote.address,
+                            quote=instrument_params.base.address,
                             amount=10000,
                             qtype=QuoteType.exactOut
                         ),

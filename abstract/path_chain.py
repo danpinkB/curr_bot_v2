@@ -1,8 +1,9 @@
 import json
 import logging
+from collections import namedtuple
 from decimal import Decimal
 from enum import Enum, IntEnum
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Tuple
 
 from abstract.instrument import Instrument
 
@@ -53,4 +54,16 @@ class InstrumentRoute(NamedTuple):
 
     @classmethod
     def from_str(cls, data: str) -> 'InstrumentRoute':
-        return cls(**json.loads(data))
+        data = json.loads(data)
+        chain: Tuple[str, float, List[str]]
+        return InstrumentRoute(
+            instrument=data["instrument"],
+            qtype=QuoteType(data["qtype"]),
+            pathes=[
+                PathChain(
+                    version=chain[0],
+                    percent=chain[1],
+                    pools=chain[2]
+                ) for chain in data['pathes']
+            ]
+        )
