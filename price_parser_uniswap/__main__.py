@@ -13,7 +13,7 @@ from jinja2 import Template
 from web3 import AsyncWeb3
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS, EthTokens
 from abstract.exchange import Exchange
-from abstract.instrument import ExchangeInstrument, Instrument
+from abstract.instrument import ExchangeInstrument, Instrument, DEXExchangeInstrumentParams
 from abstract.path_chain import PathChain, QuoteType, InstrumentRoute
 from inmemory_storage.path_db.path_db import path_db
 from inmemory_storage.sync_db.sync_db import sync_db
@@ -29,33 +29,45 @@ NAME = "UNIv3"
 
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
-INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex: i for i in REQUIRED_INSTRUMENTS}
+INSTRUMENT_PARAMS = {i: INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex for i in REQUIRED_INSTRUMENTS}
 
 web3_conn = web3.AsyncWeb3(web3.AsyncHTTPProvider(JSON_RPC_PROVIDER))
 quoter = web3_conn.eth.contract(QUOTER_ADDRESS, abi=QUOTER_ABI)
 router = web3_conn.eth.contract(ROUTER_ADDRESS, abi=ROUTER_ABI)
 
-version_typed_executors = {
-    QuoteType.exactIn:{
-        "V2":
-    }
-}
-async def parse_route_price(
-        route: InstrumentRoute
-) -> Decimal:
-    fee: int
-    from_: EthTokens
-    to_: EthTokens
-    path: PathChain
-    amount: int = 0
-    total: int = 0
-    total_token = 0
-    executable =
-    print(route)
-    for path in route.pathes:
-        print(path.percent)
-        print(path.version)
 
+async def quote_in_v3(path: PathChain, dec_from: Decimal, dec_to: Decimal) -> Decimal:
+    amount: Decimal = path.amount*dec_from
+    for pool in path.pools:
+        await quoter.functions.quoteExactInputSingle((pool.token_from, pool.token_to, amount, pool.fee, 0)).call()
+
+
+async def quote_out_v3(path:PathChain, dec_from:Decimal, dec_to:Decimal) -> Decimal:
+    amount: Decimal = Decimal(path.amount)*dec_from
+    for pool in reversed(path.pools):
+        amount = (await quoter.functions.quoteExactOutputSingle((pool.token_from, pool.token_to, amount, pool.fee, 0)).call())[0]
+    return amount
+
+
+version_typed_executors = {
+    (QuoteType.exactIn, "V3"): quote_in_v3,
+    (QuoteType.exactOut, "V3"): quote_out_v3,
+}
+
+async def parse_route_price(
+    route: InstrumentRoute
+) -> Decimal:
+    path: PathChain
+    amount: Decimal
+    total: Decimal = Decimal(0)
+    total_token = Decimal(0)
+    print(route)
+    params: DEXExchangeInstrumentParams
+    for path in route.pathes:
+        print(path.amount)
+        print(path.version)
+        params = INSTRUMENT_PARAMS[route.instrument]
+        version_typed_executors[(route.qtype, path.version)](path, params)
         route.qtype
         if is_buy:
             for path_chain in perc_path:
@@ -91,7 +103,7 @@ async def main():
     path_db_ins: Final = path_db()
     locker_db: Final = sync_db()
     while True:
-        for instrument in REQUIRED_INSTRUMENTS:
+        for instrument, params in INSTRUMENT_PARAMS.items():
             if await locker_db.is_lock(instrument.value):
                 continue
             quote_in = await path_db_ins.get_route(instrument, QuoteType.exactIn)

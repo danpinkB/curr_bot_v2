@@ -12,12 +12,12 @@ class PathDB:
         self._conn: Redis = Redis.from_url(dsn)
 
     async def set_route(self, chain: InstrumentRoute) -> None:
-        await self._conn.set(f'{chain.instrument.name}{chain.qtype.name}', chain.to_str())
+        await self._conn.set(f'{chain.instrument.name}{chain.qtype.name}', chain.to_string())
 
     async def get_route(self, instrument: Instrument, qtype: QuoteType) -> Optional[InstrumentRoute]:
         path = await self._conn.get(f'{instrument.name}{qtype.name}')
         if path:
-            return InstrumentRoute.from_str(path)
+            return InstrumentRoute.from_string(path)
 
 
 def path_db():

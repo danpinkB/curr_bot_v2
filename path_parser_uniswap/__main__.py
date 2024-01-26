@@ -3,7 +3,7 @@ import logging
 import re
 import shlex
 import subprocess
-from typing import Optional, NamedTuple, Callable, Any, Final
+from typing import Optional, NamedTuple, Callable, Any, Final, Tuple
 
 import web3
 from eth_typing import ChecksumAddress
@@ -12,7 +12,7 @@ from jinja2 import Template
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams, Instrument
-from abstract.path_chain import PathChain, CLIQuoteUniswap, QuoteType, InstrumentRoute
+from abstract.path_chain import PathChain, QuoteType, InstrumentRoute
 from inmemory_storage.path_db.path_db import path_db
 from inmemory_storage.sync_db.sync_db import sync_db
 from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
@@ -23,58 +23,56 @@ NAME = "UNIv3"
 ansi_escape = re.compile(r'^\s+|\s+$')
 
 REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if any(ei.exchange == Exchange.UNISWAP for ei in v))
-INSTRUMENT_ARGUMENTS = {INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex:i for i in REQUIRED_INSTRUMENTS}
+INSTRUMENT_PARAMS = {i: INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex for i in REQUIRED_INSTRUMENTS}
 
 
-class FieldMapper(NamedTuple):
-    field_name: str
-    apply: Callable[[Any], Any]
+# class FieldMapper(NamedTuple):
+#     field_name: str
+#     apply: Callable[[Any], Any]
 
 
-mapper = {
-    1: FieldMapper(
-        field_name="best_route",
-        apply=lambda x: x
-    ),
-    5: FieldMapper(
-        field_name="quote_in",
-        apply=lambda x: x
-    ),
-    7: FieldMapper(
-        field_name="gas_quote",
-        apply=lambda x: x[18:]
-    ),
-    8: FieldMapper(
-        field_name="gas_usd",
-        apply=lambda x: x[13:]
-    ),
-    9: FieldMapper(
-        field_name="call_data",
-        apply=lambda x: x[9:]
-    ),
-    12: FieldMapper(
-        field_name="block_number",
-        apply=lambda x: x[12:]
-    )
-}
-cli_height = range(13)
+# mapper = {
+#     1: FieldMapper(
+#         field_name="best_route",
+#         apply=lambda x: x
+#     ),
+#     5: FieldMapper(
+#         field_name="quote_in",
+#         apply=lambda x: x
+#     ),
+#     7: FieldMapper(
+#         field_name="gas_quote",
+#         apply=lambda x: x[18:]
+#     ),
+#     8: FieldMapper(
+#         field_name="gas_usd",
+#         apply=lambda x: x[13:]
+#     ),
+#     9: FieldMapper(
+#         field_name="call_data",
+#         apply=lambda x: x[9:]
+#     ),
+#     12: FieldMapper(
+#         field_name="block_number",
+#         apply=lambda x: x[12:]
+#     )
+# }
+# cli_height = range(13)
 
 
-async def _quote(base: ChecksumAddress, quote: ChecksumAddress, amount: float, qtype: QuoteType) -> Optional[CLIQuoteUniswap]:
+async def _quote(params: DEXExchangeInstrumentParams, amount: float, qtype: QuoteType) -> Optional[Tuple[PathChain, ...]]:
+    base, quote = (params.base.address, params.quote.address) if qtype is QuoteType.exactIn else (params.quote.address, params.base.address)
     command = f'{UNI_CLI_PATH}bin/cli quote -i {quote} -o {base} --amount {amount} --{qtype.name} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3'
     args = shlex.split(command)
     process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    quote = {}
-    line: bytes
-    for ind in cli_height:
-        line = await process.stdout.readline()
-        if line and mapper.get(ind):
-            quote[mapper[ind].field_name] = mapper[ind].apply(ansi_escape.sub('', line.decode("utf-8")))
-    try:
-        return CLIQuoteUniswap(**quote)
-    except Exception as ex:
-        logging.info(command)
-        logging.info(quote)
+    # quote = {}
+    line: str = (await process.stdout.readline()).decode("utf-8")
+    # for ind in cli_height:
+    #     line = await process.stdout.readline()
+    #     if line and mapper.get(ind):
+    #         quote[mapper[ind].field_name] = mapper[ind].apply(ansi_escape.sub('', line.decode("utf-8")))
+    logging.info(line)
+    return tuple(PathChain.from_list(pch) for pch in eval(line)) if line is not "None" else None
 
 
 async def main():
@@ -87,31 +85,29 @@ async def main():
     instrument_params: DEXExchangeInstrumentParams
     i: Instrument
     while True:
-        for instrument_params, i in INSTRUMENT_ARGUMENTS.items():
+        for i, instrument_params in INSTRUMENT_PARAMS.items():
             if not await locker_db.is_lock(i.value):
                 await locker_db.lock_action(i.value, 60000)
                 await path_db_ins.set_route(
-                    InstrumentRoute.from_cli(
-                        data=await _quote(
-                            base=instrument_params.base.address,
-                            quote=instrument_params.quote.address,
+                    InstrumentRoute(
+                        instrument=i,
+                        qtype=QuoteType.exactIn,
+                        pathes=await _quote(
+                            instrument_params,
                             amount=10000,
                             qtype=QuoteType.exactIn
-                        ),
-                        instrument=i,
-                        qtype=QuoteType.exactIn
+                        )
                     )
                 )
                 await path_db_ins.set_route(
-                    InstrumentRoute.from_cli(
-                        data=await _quote(
-                            base=instrument_params.quote.address,
-                            quote=instrument_params.base.address,
+                    InstrumentRoute(
+                        instrument=i,
+                        qtype=QuoteType.exactOut,
+                        pathes=await _quote(
+                            instrument_params,
                             amount=10000,
                             qtype=QuoteType.exactOut
-                        ),
-                        instrument=i,
-                        qtype=QuoteType.exactOut
+                        )
                     )
                 )
                 # await publish_price_topic(broker, LastPriceMessage(

@@ -3,9 +3,9 @@ import logging
 from collections import namedtuple
 from decimal import Decimal
 from enum import Enum, IntEnum
-from typing import NamedTuple, List, Tuple
+from typing import NamedTuple, List, Tuple, Optional, Any
 
-from abstract.instrument import Instrument
+from abstract.instrument import Instrument, DEXExchangeInstrumentParams
 
 
 class QuoteType(IntEnum):
@@ -13,57 +13,49 @@ class QuoteType(IntEnum):
     exactOut = 1
 
 
-class CLIQuoteUniswap(NamedTuple):
-    best_route: str
-    quote_in: Decimal
-    gas_quote: Decimal
-    gas_usd: Decimal
-    call_data: str
-    block_number: int
+class UniPool(NamedTuple):
+    address: str
+    token_from: str
+    token_to: str
+    fee: float
+
+    @classmethod
+    def from_list(cls, data: List[str, str, str, float]):
+        return cls(*data)
+
+    def to_list(self) -> Tuple[str, str, str, float]:
+        return self.address, self.token_from, self.token_to, self.fee
 
 
 class PathChain(NamedTuple):
     version: str
-    percent: float
-    pools: List[str]
+    amount: float
+    pools: Tuple[UniPool, ...]
+
+    @classmethod
+    def from_list(cls, data: Tuple[str, float, List[Any]]):
+        return cls(data[0], data[1], tuple(UniPool.from_list(pool) for pool in data[3]))
+
+    def to_list(self) -> Tuple[str, float, Tuple[Any, ...]]:
+        return self.version, self.amount, tuple(pool.to_list() for pool in self.pools)
 
 
 class InstrumentRoute(NamedTuple):
     instrument: Instrument
     qtype: QuoteType
-    pathes: List[PathChain]
-
-    @staticmethod
-    def from_cli(data: CLIQuoteUniswap, instrument: Instrument, qtype: QuoteType) -> 'InstrumentRoute':
-        # logging.info(data)
-        return InstrumentRoute(
-            instrument=instrument,
-            qtype=qtype,
-            pathes=[
-                PathChain(
-                    version=parts[0][1:-1],
-                    percent=float(parts[1][:-1]),
-                    pools=[pool[1:-1] for pool in parts[3:] if pool.startswith('[') and pool.endswith(']')],
-                )
-                for parts in [entry.split(' ') for entry in data.best_route.split(', ')]
-            ]
-        )
-
-    def to_str(self) -> str:
-        return json.dumps(self._asdict())
+    pathes: Tuple[PathChain, ...]
 
     @classmethod
-    def from_str(cls, data: str) -> 'InstrumentRoute':
-        data = json.loads(data)
-        chain: Tuple[str, float, List[str]]
-        return InstrumentRoute(
-            instrument=data["instrument"],
-            qtype=QuoteType(data["qtype"]),
-            pathes=[
-                PathChain(
-                    version=chain[0],
-                    percent=chain[1],
-                    pools=chain[2]
-                ) for chain in data['pathes']
-            ]
-        )
+    def from_list(cls, route_data: Tuple[int, int, List[Any]]):
+        return cls(Instrument(route_data[0]), QuoteType(route_data[1]), tuple(PathChain.from_list(path) for path in route_data[2]))
+
+    def to_list(self) -> Tuple[int, int, Tuple[Any, ...]]:
+        return self.instrument, self.qtype, tuple(path.to_list() for path in self.pathes)
+
+    def to_string(self) -> str:
+        return str(self.to_list())
+
+    @classmethod
+    def from_string(cls, input_string: str) -> 'InstrumentRoute':
+        return cls.from_list(eval(input_string))
+
