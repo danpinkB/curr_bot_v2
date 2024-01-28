@@ -7,7 +7,7 @@ from eth_typing import ChecksumAddress
 class DEXToken(NamedTuple):
     symbol: str
     address: ChecksumAddress
-    decimals: Decimal
+    decimals: int
 
 
 class CEXToken(NamedTuple):

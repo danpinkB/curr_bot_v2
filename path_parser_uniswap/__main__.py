@@ -12,7 +12,7 @@ from jinja2 import Template
 from abstract.const import INSTRUMENTS_CONNECTIVITY, INSTRUMENTS
 from abstract.exchange import Exchange
 from abstract.instrument import ExchangeInstrument, DEXExchangeInstrumentParams, Instrument
-from abstract.path_chain import PathChain, QuoteType, InstrumentRoute
+from abstract.path_chain import RouteChain, QuoteType, InstrumentRoute
 from inmemory_storage.path_db.path_db import path_db
 from inmemory_storage.sync_db.sync_db import sync_db
 from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
@@ -59,57 +59,74 @@ INSTRUMENT_PARAMS = {i: INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex
 # }
 # cli_height = range(13)
 
+CLI_TEMPLATE: Final = Template(UNI_CLI_PATH+'bin/cli quote -i {{quote}} -o {{base}} --amount {{amount}} --{{qtype}} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3')
 
-async def _quote(params: DEXExchangeInstrumentParams, amount: float, qtype: QuoteType) -> Optional[Tuple[PathChain, ...]]:
+
+async def _quote(params: DEXExchangeInstrumentParams, amount: float, qtype: QuoteType) -> Optional[Tuple[RouteChain, ...]]:
     base, quote = (params.base.address, params.quote.address) if qtype is QuoteType.exactIn else (params.quote.address, params.base.address)
-    command = f'{UNI_CLI_PATH}bin/cli quote -i {quote} -o {base} --amount {amount} --{qtype.name} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3'
-    args = shlex.split(command)
-    process = await asyncio.create_subprocess_exec(*args, cwd=UNI_CLI_PATH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = await asyncio.create_subprocess_exec(
+        *shlex.split(
+            CLI_TEMPLATE.render(
+                quote=quote,
+                base=base,
+                amount=amount,
+                qtype=qtype.name
+            )
+        ),
+        cwd=UNI_CLI_PATH,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
     # quote = {}
-    line: str = (await process.stdout.readline()).decode("utf-8")
+    line = eval((await process.stdout.readline()).decode("utf-8"))
     # for ind in cli_height:
     #     line = await process.stdout.readline()
     #     if line and mapper.get(ind):
     #         quote[mapper[ind].field_name] = mapper[ind].apply(ansi_escape.sub('', line.decode("utf-8")))
-    logging.info(line)
-    return tuple(PathChain.from_list(pch) for pch in eval(line)) if line is not "None" else None
+    return tuple(RouteChain.from_data(pch) for pch in line) if line else None
 
 
 async def main():
     setting_db: Final = tg_settings_db()
     path_db_ins: Final = path_db()
     locker_db: Final = sync_db()
-    curr_block_number = 0
-    # broker = await message_broker()
-    # await sender.connect()
+    quote_in_route: Optional[Tuple[RouteChain, ...]]
+    quote_out_route: Optional[Tuple[RouteChain, ...]]
     instrument_params: DEXExchangeInstrumentParams
     i: Instrument
     while True:
         for i, instrument_params in INSTRUMENT_PARAMS.items():
             if not await locker_db.is_lock(i.value):
-                await locker_db.lock_action(i.value, 60000)
-                await path_db_ins.set_route(
-                    InstrumentRoute(
-                        instrument=i,
-                        qtype=QuoteType.exactIn,
-                        pathes=await _quote(
-                            instrument_params,
-                            amount=10000,
-                            qtype=QuoteType.exactIn
+                logging.info(i.name)
+                await locker_db.lock_action(i.value, 30000)
+                quote_in_route = await _quote(
+                    instrument_params,
+                    amount=10000,
+                    qtype=QuoteType.exactIn
+                )
+                quote_out_route = await _quote(
+                    instrument_params,
+                    amount=10000,
+                    qtype=QuoteType.exactOut
+                )
+
+                if quote_in_route:
+                    quote_in_route = tuple(route for route in quote_in_route)
+                    await path_db_ins.set_route(
+                        InstrumentRoute(
+                            instrument=i,
+                            qtype=QuoteType.exactIn,
+                            pathes=quote_in_route
                         )
                     )
-                )
-                await path_db_ins.set_route(
-                    InstrumentRoute(
-                        instrument=i,
-                        qtype=QuoteType.exactOut,
-                        pathes=await _quote(
-                            instrument_params,
-                            amount=10000,
-                            qtype=QuoteType.exactOut
+                if quote_out_route:
+                    await path_db_ins.set_route(
+                        InstrumentRoute(
+                            instrument=i,
+                            qtype=QuoteType.exactOut,
+                            pathes=quote_out_route
                         )
                     )
-                )
                 # await publish_price_topic(broker, LastPriceMessage(
                 #     price=InstrumentPrice(buy=buy.quote_in, sell=sell.quote_in, buy_fee=buy.gas_usd, sell_fee=sell.gas_usd),
                 #     exchange=Exchange.UNISWAP,

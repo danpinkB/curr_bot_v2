@@ -111,7 +111,7 @@ services:
 #    container_name: price_parser_uniswap
     restart: unless-stopped
     deploy:
-      replicas: 3
+      replicas: 1
     environment:
       JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}

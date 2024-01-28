@@ -1,5 +1,5 @@
 from _decimal import Decimal
-from enum import Enum, unique
+from enum import Enum, unique, IntEnum
 from types import MappingProxyType
 
 from eth_utils import to_checksum_address
@@ -24,11 +24,11 @@ EXCHANGES = {
 
 
 @unique
-class TokenDecimals(Enum):
-    D16 = Decimal(1000000000000000000)
-    D8 = Decimal(100000000)
-    D9 = Decimal(1000000000)
-    D6 = Decimal(1000000)
+class TokenDecimals(IntEnum):
+    D16 = 1000000000000000000
+    D8 = 100000000
+    D9 = 1000000000
+    D6 = 1000000
 
 @unique
 class EthTokens(Enum):
@@ -102,7 +102,7 @@ INSTRUMENTS = MappingProxyType({
     # ExchangeInstrument(Exchange.UNISWAP, Instrument.XRP__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.XRP.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.SOL__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.SOL.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.TON__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.TON.value, EthTokens.USDT.value)),
-    ExchangeInstrument(Exchange.UNISWAP, Instrument.TRX__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.TRX.value, EthTokens.USDT.value)),
+    # ExchangeInstrument(Exchange.UNISWAP, Instrument.TRX__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.TRX.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.MATIC__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.MATIC.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.BADGER__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.BADGER.value, EthTokens.USDT.value)),
     ExchangeInstrument(Exchange.UNISWAP, Instrument.SUSHI__USDT): ExchangeInstrumentParams(dex=DEXExchangeInstrumentParams(EthTokens.SUSHI.value, EthTokens.USDT.value)),
@@ -121,8 +121,8 @@ INSTRUMENTS = MappingProxyType({
     ExchangeInstrument(Exchange.BINANCE, Instrument.BTC__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.BTC.value, BinanceTokens.USDT.value)),
     # ExchangeInstrument(Exchange.BINANCE, Instrument.XRP__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.XRP.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.SOL__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.SOL.value, BinanceTokens.USDT.value)),
-    ExchangeInstrument(Exchange.BINANCE, Instrument.TON__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.TON.value, BinanceTokens.USDT.value)),
-    ExchangeInstrument(Exchange.BINANCE, Instrument.TRX__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.TRX.value, BinanceTokens.USDT.value)),
+    # ExchangeInstrument(Exchange.BINANCE, Instrument.TON__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.TON.value, BinanceTokens.USDT.value)),
+    # ExchangeInstrument(Exchange.BINANCE, Instrument.TRX__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.TRX.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.MATIC__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.MATIC.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.BADGER__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.BADGER.value, BinanceTokens.USDT.value)),
     ExchangeInstrument(Exchange.BINANCE, Instrument.SUSHI__USDT): ExchangeInstrumentParams(cex=CEXExchangeInstrumentParams(BinanceTokens.SUSHI.value, BinanceTokens.USDT.value)),
@@ -167,3 +167,11 @@ for k in INSTRUMENTS.keys():
 INSTRUMENTS__EXCHANGES = MappingProxyType(INSTRUMENTS__EXCHANGES)
 
 
+ETH_INSTRUMENT_ADDRESS_PARAMS = {}
+ei: ExchangeInstrument
+eip: ExchangeInstrumentParams
+for p in {eip.dex for ei, eip in INSTRUMENTS.items() if ei.exchange == Exchange.UNISWAP}:
+    ETH_INSTRUMENT_ADDRESS_PARAMS[p.quote.address] = p.quote
+    ETH_INSTRUMENT_ADDRESS_PARAMS[p.base.address] = p.base
+
+ETH_INSTRUMENT_ADDRESS_PARAMS = MappingProxyType(ETH_INSTRUMENT_ADDRESS_PARAMS)

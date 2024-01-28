@@ -5,7 +5,7 @@ import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 //Currency, CurrencyAmount,
-import { ChainId,  Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 // import { MethodParameters } from '@uniswap/v3-sdk';
 import bunyan, { default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
@@ -364,7 +364,7 @@ export abstract class BaseCommand extends Command {
     // simulationStatus?: SimulationStatus,
   ) {
     // this.logger.info(`Best Route:`);
-    this.logger.info(routeAmountsToString(routeAmounts));
+    this.logger.info(`[${routeAmountsToString(routeAmounts)}]`);
 
     // this.logger.info(`\tRaw Quote Exact In:`);
     // this.logger.info(

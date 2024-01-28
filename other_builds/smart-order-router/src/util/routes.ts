@@ -19,7 +19,7 @@ export const routeToString = (
     route.protocol === Protocol.V3
       ? route.tokenPath
       : // MixedRoute and V2Route have path
-        route.path;
+      route.path;
   // const tokenPath = _.map(tokens, (token) => `${token.address}`);
   const pools =
     route.protocol === Protocol.V3 || route.protocol === Protocol.MIXED
@@ -27,30 +27,23 @@ export const routeToString = (
       : route.pairs;
   const poolFeePath = _.map(pools, (pool, ind) => {
     if (pool instanceof Pool)
-      return `['${
-        Pool.getAddress(
-          pool.token0,
-          pool.token1,
-          pool.fee,
-          undefined,
-          V3_CORE_FACTORY_ADDRESSES[pool.chainId]
-        )
-      }','${
-        tokens[ind]!.address
-      }','${
-        tokens[ind+1]!.address
-      }',${
-        pool.fee
-      }]`
-    return `['${
-        Pair.getAddress(
-          (pool as Pair).token0,
-          (pool as Pair).token1
-        )
-      }','${
-        tokens[ind]!.address
-      }','${
-        tokens[ind+1]!.address
+      return `['${Pool.getAddress(
+        pool.token0,
+        pool.token1,
+        pool.fee,
+        undefined,
+        V3_CORE_FACTORY_ADDRESSES[pool.chainId]
+      )
+        }','${tokens[ind]!.address
+        }','${tokens[ind + 1]!.address
+        }',${pool.fee
+        }]`
+    return `['${Pair.getAddress(
+      (pool as Pair).token0,
+      (pool as Pair).token1
+    )
+      }','${tokens[ind]!.address
+      }','${tokens[ind + 1]!.address
       }',0]`
   });
 
@@ -75,14 +68,14 @@ export const routeAmountsToString = (
   //   },
   //   CurrencyAmount.fromRawAmount(routeAmounts[0]!.amount.currency, 0)
   // );
-
   const routeStrings = _.map(routeAmounts, ({ protocol, route, amount }) => {
+    // route.
     // const portion = amount.divide(total);
     // const percent = new Percent(portion.numerator, portion.denominator);
     /// @dev special case for MIXED routes we want to show user friendly V2+V3 instead
-    return `['${
-      protocol == Protocol.MIXED ? 'V2 + V3' : protocol
-    }',${amount.toFixed()},[${routeToString(route)}]]`;
+
+    return `['${protocol == Protocol.MIXED ? 'V2 + V3' : protocol
+      }',${amount.toFixed(0)},[${routeToString(route)}]]`;
   });
 
   return _.join(routeStrings, ',');
@@ -96,7 +89,6 @@ export const routeAmountToString = (
 };
 
 export const poolToString = (p: Pool | Pair): string => {
-  return `${p.token0.symbol}/${p.token1.symbol}${
-    p instanceof Pool ? `/${p.fee / 10000}%` : ``
-  }`;
+  return `${p.token0.symbol}/${p.token1.symbol}${p instanceof Pool ? `/${p.fee / 10000}%` : ``
+    }`;
 };
