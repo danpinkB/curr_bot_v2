@@ -48,6 +48,19 @@ async def quote_out_v3(amount: int, pool: UniPool) -> int:
     return res[0]
 
 
+async def quote_in_v2(amount: int, pool: UniPool) -> int:
+    res = await router.functions.getAmountsOut(amount, [pool.token_from, pool.token_to]).call()
+    # logging.info(f'{pool} {res}')
+    return res[0]
+
+
+async def quote_out_v2(amount: int, pool: UniPool) -> int:
+    # logging.info(pool)
+    res = await router.functions.getAmountsIn(amount, [pool.token_from, pool.token_to]).call()
+    # logging.info(res)
+    return res[0]
+
+
 version_typed_executors = {
     (QuoteType.exactIn, "V3"): quote_in_v3,
     (QuoteType.exactOut, "V3"): quote_out_v3,

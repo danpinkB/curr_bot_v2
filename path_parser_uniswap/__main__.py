@@ -59,7 +59,7 @@ INSTRUMENT_PARAMS = {i: INSTRUMENTS[ExchangeInstrument(Exchange.UNISWAP, i)].dex
 # }
 # cli_height = range(13)
 
-CLI_TEMPLATE: Final = Template(UNI_CLI_PATH+'bin/cli quote -i {{quote}} -o {{base}} --amount {{amount}} --{{qtype}} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v3')
+CLI_TEMPLATE: Final = Template(UNI_CLI_PATH+'bin/cli quote -i {{quote}} -o {{base}} --amount {{amount}} --{{qtype}} --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v2,v3')
 
 
 async def _quote(params: DEXExchangeInstrumentParams, amount: float, qtype: QuoteType) -> Optional[Tuple[RouteChain, ...]]:
