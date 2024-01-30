@@ -1,8 +1,10 @@
 import asyncio
 import logging
+import random
 import re
 import shlex
 import subprocess
+import time
 from typing import Optional, NamedTuple, Callable, Any, Final, Tuple
 
 import web3
@@ -78,7 +80,11 @@ async def _quote(params: DEXExchangeInstrumentParams, amount: float, qtype: Quot
         stderr=subprocess.PIPE
     )
     # quote = {}
-    line = eval((await process.stdout.readline()).decode("utf-8"))
+    line = await process.stdout.readline()
+    if len(line) == 0:
+        return None
+    logging.info(f"quote result {line}")
+    line = eval(line.decode("utf-8"))
     # for ind in cli_height:
     #     line = await process.stdout.readline()
     #     if line and mapper.get(ind):
@@ -135,6 +141,7 @@ async def main():
 
 
 if __name__ == '__main__':
+    time.sleep((random.random() * 10) / 5)
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

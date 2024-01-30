@@ -23,6 +23,8 @@ httpx = "^0.25.0"
 aio-binance-library = "^2.0.7"
 env = "^0.1.0"
 redis = "^5.0.1"
+redlock-py = "^1.0.8"
+uniswap-python = "^0.7.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1742,6 +1742,19 @@ hiredis = ["hiredis (>=1.0.0)"]
 ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
 
 [[package]]
+name = "redlock-py"
+version = "1.0.8"
+description = "Redis locking mechanism"
+optional = false
+python-versions = "*"
+files = [
+    {file = "redlock-py-1.0.8.tar.gz", hash = "sha256:0b8722c4843ddeabc2fc1dd37c05859e0da29fbce3bd1f6ecc73c98396f139ac"},
+]
+
+[package.dependencies]
+redis = "*"
+
+[[package]]
 name = "referencing"
 version = "0.30.2"
 description = "JSON Referencing + Python"
@@ -2181,6 +2194,23 @@ files = [
 ]
 
 [[package]]
+name = "uniswap-python"
+version = "0.7.1"
+description = "An unofficial Python wrapper for the decentralized exchange Uniswap"
+optional = false
+python-versions = ">=3.7.2,<4.0.0"
+files = [
+    {file = "uniswap_python-0.7.1-py3-none-any.whl", hash = "sha256:2dfb0760e0a4db0193d32a23357bcefb542f62196282b769ba256a76a9a80979"},
+    {file = "uniswap_python-0.7.1.tar.gz", hash = "sha256:2cb7fd88e9279f6b89520c34ef6350c8883da3924ccdb0a19c19c02af0f38c1a"},
+]
+
+[package.dependencies]
+click = ">=8.0.3,<9.0.0"
+python-dotenv = "*"
+typing-extensions = "*"
+web3 = ">=6.0,<7.0"
+
+[[package]]
 name = "urllib3"
 version = "2.0.7"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -2435,4 +2465,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "146a02380368e5d76b0085ec9602c79771c35aad3fc420c3d7dfb77565688fd6"
+content-hash = "0065ff6a35b5ebbdbfa38ceb1363a64e873106ea18ff2ba1f870481ea7a6eb25"

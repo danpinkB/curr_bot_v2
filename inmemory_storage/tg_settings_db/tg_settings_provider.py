@@ -14,6 +14,12 @@ class TgSettingsProvider:
 
     async def get_settings(self) -> TelegramSettings:
         settings_data = await self._conn.hgetall(SETTINGS_KEY)
+        if len(settings_data)!=3:
+            return TelegramSettings(
+                percent=0.01,
+                calc_volume=10000,
+                messages_delay=60
+            )
         return TelegramSettings(*settings_data)
 
     async def set_settings(self, settings: TelegramSettings) -> None:

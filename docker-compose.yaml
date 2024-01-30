@@ -19,8 +19,7 @@ services:
     environment:
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
       #PRICE_DB__DSN : ${PRICE_DB__DSN}
-      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER__DSN}
-      MESSAGE_BROKER_SENDER__QUE: 'price'
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
       - message_broker
       - kv_db
@@ -32,12 +31,7 @@ services:
     container_name: last_price_api
     restart: unless-stopped
     environment:
-      MESSAGE_BROKER_CONSUMER__DSN : ${MESSAGE_BROKER__DSN}
-      MESSAGE_BROKER_CONSUMER__QUE : 'price'
-
-      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER__DSN}
-      MESSAGE_BROKER_SENDER__QUE : 'notification'
-
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
       #PRICE_DB__DSN : ${PRICE_DB__DSN}
     depends_on:
@@ -94,10 +88,7 @@ services:
     environment:
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-
-      MESSAGE_BROKER_CONSUMER__DSN : ${MESSAGE_BROKER__DSN}
-      MESSAGE_BROKER_CONSUMER__QUE: 'notification'
-
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       SYNC_DB__DSN : ${NOTIFIER_SYNC_DB__DSN}
       SETTINGS_DB__DSN: ${SETTINGS_DB__DSN}
       DB_PATH: ""
@@ -118,8 +109,7 @@ services:
       PATH_DB__DSN : ${PATH_DB__DSN}
       SYNC_DB__DSN : ${PRICE_SYNC_DB__DSN}
 
-      MESSAGE_BROKER_SENDER__DSN : ${MESSAGE_BROKER__DSN}
-      MESSAGE_BROKER_SENDER__QUE : 'price'
+      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
       - kv_db
       - message_broker
@@ -149,19 +139,19 @@ services:
       - kv_db_data:/.var
     container_name: kv_db
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+#    ports:
+#      - "6379:6379"
 
-  redis-commander:
-    container_name: redis-commander
-    hostname: redis-commander
-    image: ghcr.io/joeferner/redis-commander:latest
-    build: .
-    restart: always
-    environment:
-      - REDIS_HOSTS=local:kv_db:6379
-    ports:
-      - "8081:8081"
+#  redis-commander:
+#    container_name: redis-commander
+#    hostname: redis-commander
+#    image: ghcr.io/joeferner/redis-commander:latest
+#    build: .
+#    restart: always
+#    environment:
+#      - REDIS_HOSTS=local:kv_db:6379
+#    ports:
+#      - "8081:8081"
 
   message_broker:
     image: 'rabbitmq:3-management'
@@ -177,7 +167,86 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    ports:
-      - "15672:15672"
-      - "5672:5672"
+#    ports:
+#      - "15672:15672"
+#      - "5672:5672"
+
+  geth:
+    image: ethereum/client-go
+    pull_policy: always
+    container_name: geth
+    restart: unless-stopped
+#    ports:
+#      - 30303:30303
+#      - 30303:30303/udp
+#      - 8545:8545
+#      - 8546:8546
+#      - 8551:8551
+    volumes:
+      - ${GETH_DATADIR:-/data/geth}:/root/.ethereum
+    stop_signal: SIGINT
+    stop_grace_period: 2m
+    healthcheck:
+      test: [ "CMD-SHELL", "geth attach --exec eth.blockNumber" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - --http
+      - --http.api=eth,net,web3,engine,admin
+      - --http.addr=0.0.0.0
+      - --http.vhosts=*
+      - --http.corsdomain=*
+      - --rpc.gascap=0
+      - --ws
+      - --ws.origins=*
+      - --ws.addr=0.0.0.0
+      - --ws.api=eth,net,web3
+      - --graphql
+      - --graphql.corsdomain=*
+      - --graphql.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.vhosts=*
+      - --authrpc.jwtsecret=/root/.ethereum/jwt.hex
+      - --authrpc.port=8551
+      - --txlookuplimit=0
+    logging:
+      driver: json-file
+      options:
+        max-size: 2m
+        max-file: "10"
+
+  prysm:
+    image: gcr.io/prysmaticlabs/prysm/beacon-chain
+    pull_policy: always
+    container_name: beacon
+    restart: unless-stopped
+    stop_grace_period: 2m
+    volumes:
+      - ${PRYSM_DATADIR:-/data/prysm}:/data
+      - ${GETH_DATADIR:-/data/geth}:/geth
+    depends_on:
+      geth:
+        condition: service_healthy
+#    ports:
+#      - 4000:4000
+#      - 3500:3500
+    command:
+      - --accept-terms-of-use
+      - --datadir=/data
+      - --disable-monitoring
+      - --rpc-host=0.0.0.0
+      - --execution-endpoint=http://geth:8551
+      - --jwt-secret=/geth/jwt.hex
+      - --rpc-host=0.0.0.0
+      - --rpc-port=4000
+      - --grpc-gateway-corsdomain=*
+      - --grpc-gateway-host=0.0.0.0
+      - --grpc-gateway-port=3500
+      - --checkpoint-sync-url=https://checkpointz.pietjepuk.net
+    logging:
+      driver: json-file
+      options:
+        max-size: 2m
+        max-file: "10"
 # regular expression for intelij ---->>>> \= os\.environ\.get\("\w*"\) replace ----->>>>>: \${}
