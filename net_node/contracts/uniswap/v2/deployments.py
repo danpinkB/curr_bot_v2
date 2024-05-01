@@ -2,3 +2,4 @@ from eth_utils import to_checksum_address
 
 ROUTER_ADDRESS = to_checksum_address('0xf164fC0Ec4E93095b804a4795bBe1e041497b92a')
 ROUTER2_ADDRESS = to_checksum_address('0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D')
+FACTORY_ADDRESS = to_checksum_address('0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f')

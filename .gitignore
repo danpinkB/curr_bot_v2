@@ -4,7 +4,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .idea/
-**/.env/
+.env/
 /.var/redis/*
 /.var/rabbitmq/*
 !.var/users/*
@@ -14,6 +14,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+data/
 develop-eggs/
 dist/
 downloads/

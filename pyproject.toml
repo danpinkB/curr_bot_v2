@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.11"
 python-dotenv = "^1.0.0"
 python-telegram-bot = "^20.5"
-web3 = "^6.11.1"
 rpyc = "^5.3.1"
 jinja2 = "^3.1.2"
 pytest = "^7.4.2"
@@ -24,7 +23,10 @@ aio-binance-library = "^2.0.7"
 env = "^0.1.0"
 redis = "^5.0.1"
 redlock-py = "^1.0.8"
+web3 = "^6.17.2"
 uniswap-python = "^0.7.1"
+python-multipart = "^0.0.9"
+simplejson = "^3.19.2"
 
 [build-system]
 requires = ["poetry-core"]

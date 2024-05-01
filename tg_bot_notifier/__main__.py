@@ -24,7 +24,7 @@ def to_message(message: ExchangeInstrumentDifference):
 
 
 async def publish_telegram_notification(message: ExchangeInstrumentDifference, bot) -> None:
-    for chat_id in os.listdir(f'{os.getcwd()}/data/users'):
+    for chat_id in os.listdir(f'{os.getcwd()}/.var/users'):
         await bot.send_message(chat_id, to_message(message))
 
 
@@ -48,16 +48,17 @@ async def main():
     broker = await message_broker()
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     settings_cacher = SettingReqCacher()
-    message: ExchangeInstrumentDifference
     locker_db: Final = sync_db()
+    message: ExchangeInstrumentDifference
     settings: TelegramSettings
+    m_key: str
     async for message in subscribe_notification_topic(broker):
+        # print(message)
         settings = await settings_cacher.get_settings()
-        if (message.sell_price-message.buy_price)/message.sell_price >= settings.percent:
-            if not await locker_db.is_lock(message.instrument.value):
-                await locker_db.lock_action(message.instrument.value, settings.messages_delay)
-                if (message.buy_price-message.sell_price)/message.buy_price >= settings.percent:
-                    await publish_telegram_notification(message, bot)
+        m_key = message.instrument.name
+        if (message.buy_price-message.sell_price)/message.buy_price >= settings.percent and not await locker_db.is_lock(m_key):
+            await publish_telegram_notification(message, bot)
+            await locker_db.lock_action(m_key, settings.messages_delay*1000)
 
 
 if __name__ == "__main__":

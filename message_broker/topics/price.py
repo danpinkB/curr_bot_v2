@@ -11,20 +11,23 @@ from message_broker.async_rmq_connection import RMQConnectionAsync
 TOPIC__PRICE = "price"
 
 
-class LastPriceMessageMessageWrapper:
-    def __init__(self, iterator: AsyncIterator[AbstractIncomingMessage]) -> None:
-        self._iterator = iterator
+# class LastPriceMessageMessageWrapper:
+#     def __init__(self, iterator: AsyncIterator[AbstractIncomingMessage]) -> None:
+#         self._iterator = iterator
+#
+#     async def __aiter__(self) -> 'LastPriceMessage':
+#         message: AbstractIncomingMessage = await anext(self._iterator)
+#         async with message.process():
+#             return LastPriceMessage.from_bytes(message.body)
+#
 
-    async def __anext__(self) -> 'LastPriceMessage':
-        message: AbstractIncomingMessage = await anext(self._iterator)
-        async with message.process():
-            return LastPriceMessage.from_bytes(message.body)
-
-
-@contextlib.asynccontextmanager
+# @contextlib.asynccontextmanager
 async def subscribe_price_topic(conn: RMQConnectionAsync) -> AsyncIterator['LastPriceMessage']:
     async with conn.persistent_subscribe(TOPIC__PRICE, TOPIC__PRICE) as iterator:
-        yield LastPriceMessageMessageWrapper(iterator)
+        async for message in iterator:
+            async with message.process():
+                yield LastPriceMessage.from_bytes(message.body)
+        # yield LastPriceMessageMessageWrapper(iterator)
 
 
 async def publish_price_topic(conn: RMQConnectionAsync, data: 'LastPriceMessage') -> None:
@@ -69,7 +72,7 @@ class LastPriceMessage(NamedTuple):
         ind += buy_len + 1
         sell_len = data[ind - 1]
         sell_s = data[ind: ind + sell_len].decode("ascii")
-        ind = sell_len + 1
+        ind += sell_len + 1
         buy_fee_len = data[ind - 1]
         buy_fee_s = data[ind: ind + buy_fee_len].decode("ascii")
         ind += buy_fee_len + 1

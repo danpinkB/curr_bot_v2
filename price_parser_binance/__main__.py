@@ -7,6 +7,10 @@ from typing import Dict
 
 from aio_binance.futures.usdt import WsClient
 
+from message_broker.topics.price import LastPriceMessage
+LastPriceMessage.from_bytes(b'\x01\x13\x00\t0.2848000\t0.2849000\x030.1\x030.1')
+
+
 from abstract.const import INSTRUMENTS, INSTRUMENTS_CONNECTIVITY
 from abstract.exchange import Exchange
 from abstract.instrument import ExchangeInstrument
@@ -18,6 +22,7 @@ REQUIRED_INSTRUMENTS = tuple(k for k, v in INSTRUMENTS_CONNECTIVITY.items() if a
 SYMBOL_INSTRUMENT = {INSTRUMENTS[ExchangeInstrument(Exchange.BINANCE, i)].cex.base.symbol+INSTRUMENTS[ExchangeInstrument(Exchange.BINANCE, i)].cex.quote.symbol: i for i in REQUIRED_INSTRUMENTS}
 from dotenv import load_dotenv
 load_dotenv()
+
 
 
 async def handle_socket_message(msg: Dict, *, broker: RMQConnectionAsync):
@@ -45,7 +50,7 @@ async def main():
     ws = WsClient()
     ws.stream_book_ticker().close()
     broker = await message_broker()
-    streams = [ws.stream_book_ticker(instrument_symbol) for instrument_symbol in REQUIRED_INSTRUMENTS]
+    streams = [ws.stream_book_ticker(instrument_symbol) for instrument_symbol in SYMBOL_INSTRUMENT]
     res = await asyncio.gather(*streams)
     await ws.subscription_streams(res, functools.partial(handle_socket_message, broker=broker))
 

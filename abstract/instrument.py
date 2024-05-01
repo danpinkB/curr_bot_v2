@@ -28,6 +28,19 @@ class Instrument(IntEnum):
     POWR__USDT = 19
     BOND__USDT = 20
 
+    BEAM__USDT = 21
+    PAXG__USDT = 22
+    PEPE__USDT = 23
+    FLOKI__USDT = 24
+    SUPER__USDT = 25
+
+    @classmethod
+    def from_str(cls, value) -> Optional['Instrument']:
+        for member in cls:
+            if member.name == value:
+                return member
+        return None
+
     def exchagnes(self) -> Set[Exchange]:
         from abstract.const import INSTRUMENTS__EXCHANGES
         return INSTRUMENTS__EXCHANGES[self]

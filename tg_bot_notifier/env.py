@@ -1,14 +1,9 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
-MESSAGE_BROKER_CONSUMER__DSN = os.environ.get("MESSAGE_BROKER_CONSUMER__DSN")
-MESSAGE_BROKER_CONSUMER__QUE = os.environ.get("MESSAGE_BROKER_CONSUMER__QUE")
+from abstract.env import ENV
 
-TELEGRAM_BOT_PASSWORD = os.environ.get("TELEGRAM_BOT_PASSWORD")
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+MESSAGE_BROKER__DSN = ENV["MESSAGE_BROKER__DSN"]
 
-SYNC_DB__DSN  = os.environ.get("SYNC_DB__DSN")
-SETTINGS_DB__DSN = os.environ.get("SETTINGS_DB__DSN")
+TELEGRAM_BOT_PASSWORD = ENV["TELEGRAM_BOT_PASSWORD"]
+TELEGRAM_BOT_TOKEN = ENV["TELEGRAM_BOT_TOKEN"]
 
-DB_PATH = os.environ.get("DB_PATH")
+DB_PATH = ENV["DB_PATH"]
 

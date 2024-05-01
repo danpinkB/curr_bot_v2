@@ -1,3 +1,3 @@
-import os
+from abstract.env import ENV
 
-LAST_PRICE_API__PORT = os.environ['LAST_PRICE_API__PORT']
+LAST_PRICE_API_PORT = int(ENV['LAST_PRICE_API_PORT'])

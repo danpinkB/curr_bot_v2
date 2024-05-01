@@ -18,7 +18,6 @@ services:
     restart: unless-stopped
     environment:
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      #PRICE_DB__DSN : ${PRICE_DB__DSN}
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
     depends_on:
       - message_broker
@@ -31,9 +30,9 @@ services:
     container_name: last_price_api
     restart: unless-stopped
     environment:
+      LAST_PRICE_API_PORT: ${LAST_PRICE_API_PORT}
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      #PRICE_DB__DSN : ${PRICE_DB__DSN}
     depends_on:
       - message_broker
       - kv_db
@@ -46,9 +45,8 @@ services:
     restart: unless-stopped
     environment:
       SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      #PRICE_DB__DSN : ${PRICE_DB__DSN}
       MANAGEMENT_API_PORT : ${MANAGEMENT_API_PORT}
-
+      LAST_PRICE_API_URL: ${LAST_PRICE_API_URL}
     healthcheck:
       test: [ "CMD", "python", "healthcheck.py" ]
       interval: 10s
@@ -67,11 +65,11 @@ services:
     #container_name: tg_bot_management
     restart: unless-stopped
     environment:
-      MANAGEMENT_API_URI: management_api
-      MANAGEMENT_API_PORT: ${MANAGEMENT_API_PORT}
+      MANAGEMENT_API_URL: ${MANAGEMENT_API_URL}
 
       TELEGRAM_BOT_PASSWORD: ${TELEGRAM_BOT_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      SYNC_DB__DSN : ${NOTIFIER_SYNC_DB__DSN}
 
       DB_PATH: ""
     depends_on:
@@ -95,40 +93,18 @@ services:
     depends_on:
       - message_broker
 
-
-  price_parser_uniswap:
+  price_parser_uniswap_v2:
     <<: *common-docker-image
-    command: ["python", "-m", "price_parser_uniswap"]
-#    container_name: price_parser_uniswap
+    command: [ "python", "-m", "price_parser_uniswap_v2" ]
+    #    container_name: path_parser_uniswap
     restart: unless-stopped
-    deploy:
-      replicas: 1
+#    deploy:
+#      replicas: 3
     environment:
-      JSON_RPC_PROVIDER : ${JSON_RPC_PROVIDER}
-      SETTINGS_DB__DSN : ${SETTINGS_DB__DSN}
-      PATH_DB__DSN : ${PATH_DB__DSN}
-      SYNC_DB__DSN : ${PRICE_SYNC_DB__DSN}
-
-      MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
-    depends_on:
-      - kv_db
-      - message_broker
-
-  path_parser_uniswap:
-#    <<: *common-docker-image
-    build:
-      context: .
-      dockerfile: ./path_parser_uniswap/Dockerfile
-    command: [ "python", "-m", "path_parser_uniswap" ]
-#    container_name: path_parser_uniswap
-    restart: unless-stopped
-    deploy:
-      replicas: 3
-    environment:
+      MESSAGE_BROKER__DSN: ${MESSAGE_BROKER__DSN}
       JSON_RPC_PROVIDER: ${JSON_RPC_PROVIDER}
       SETTINGS_DB__DSN: ${SETTINGS_DB__DSN}
-      PATH_DB__DSN: ${PATH_DB__DSN}
-      SYNC_DB__DSN: ${PATH_SYNC_DB__DSN}
+      SYNC_DB__DSN: ${SYNC_DB__DSN}
     depends_on:
       - kv_db
       - message_broker
@@ -172,6 +148,7 @@ services:
 #      - "5672:5672"
 
   geth:
+    user: "${UID}:${GID}"
     image: ethereum/client-go
     pull_policy: always
     container_name: geth
@@ -183,7 +160,7 @@ services:
 #      - 8546:8546
 #      - 8551:8551
     volumes:
-      - ${GETH_DATADIR:-/data/geth}:/root/.ethereum
+      - ${PWD}/data/geth:/root/.ethereum
     stop_signal: SIGINT
     stop_grace_period: 2m
     healthcheck:
@@ -193,11 +170,10 @@ services:
       retries: 5
     command:
       - --http
-      - --http.api=eth,net,web3,engine,admin
+      - --http.api=eth,net,web3
       - --http.addr=0.0.0.0
       - --http.vhosts=*
       - --http.corsdomain=*
-      - --rpc.gascap=0
       - --ws
       - --ws.origins=*
       - --ws.addr=0.0.0.0
@@ -205,11 +181,6 @@ services:
       - --graphql
       - --graphql.corsdomain=*
       - --graphql.vhosts=*
-      - --authrpc.addr=0.0.0.0
-      - --authrpc.vhosts=*
-      - --authrpc.jwtsecret=/root/.ethereum/jwt.hex
-      - --authrpc.port=8551
-      - --txlookuplimit=0
     logging:
       driver: json-file
       options:
@@ -217,14 +188,15 @@ services:
         max-file: "10"
 
   prysm:
+    user: "${UID}:${GID}"
     image: gcr.io/prysmaticlabs/prysm/beacon-chain
     pull_policy: always
     container_name: beacon
     restart: unless-stopped
     stop_grace_period: 2m
     volumes:
-      - ${PRYSM_DATADIR:-/data/prysm}:/data
-      - ${GETH_DATADIR:-/data/geth}:/geth
+      - ${PWD}/data/prysm:/data
+      - ${PWD}/data/geth:/geth
     depends_on:
       geth:
         condition: service_healthy
@@ -234,10 +206,7 @@ services:
     command:
       - --accept-terms-of-use
       - --datadir=/data
-      - --disable-monitoring
-      - --rpc-host=0.0.0.0
-      - --execution-endpoint=http://geth:8551
-      - --jwt-secret=/geth/jwt.hex
+      - --execution-endpoint=/geth/geth.ipc
       - --rpc-host=0.0.0.0
       - --rpc-port=4000
       - --grpc-gateway-corsdomain=*

@@ -11,20 +11,22 @@ from message_broker.async_rmq_connection import RMQConnectionAsync
 TOPIC__NOTIFICATION = "notification"
 
 
-class ExchangeInstrumentDifferenceMessageWrapper:
-    def __init__(self, iterator: AsyncIterator[AbstractIncomingMessage]) -> None:
-        self._iterator = iterator
+# class ExchangeInstrumentDifferenceMessageWrapper:
+#     def __init__(self, iterator: AsyncIterator[AbstractIncomingMessage]) -> None:
+#         self._iterator = iterator
+#
+#     async def __anext__(self) -> 'ExchangeInstrumentDifference':
+#         message: AbstractIncomingMessage = await anext(self._iterator)
+#         async with message.process():
+#             return ExchangeInstrumentDifference.from_bytes(message.body)
 
-    async def __anext__(self) -> 'ExchangeInstrumentDifference':
-        message: AbstractIncomingMessage = await anext(self._iterator)
-        async with message.process():
-            return ExchangeInstrumentDifference.from_bytes(message.body)
 
-
-@contextlib.asynccontextmanager
 async def subscribe_notification_topic(conn: RMQConnectionAsync) -> AsyncIterator['ExchangeInstrumentDifference']:
     async with conn.persistent_subscribe(TOPIC__NOTIFICATION, TOPIC__NOTIFICATION) as iterator:
-        yield ExchangeInstrumentDifferenceMessageWrapper(iterator)
+        async for message in iterator:
+            async with message.process():
+                yield ExchangeInstrumentDifference.from_bytes(message.body)
+        # yield ExchangeInstrumentDifferenceMessageWrapper(iterator)
 
 
 async def publish_notification_topic(conn: RMQConnectionAsync, data: 'ExchangeInstrumentDifference') -> None:
@@ -56,7 +58,7 @@ class ExchangeInstrumentDifference(NamedTuple):
 
     @staticmethod
     def from_bytes(data: bytes) -> 'ExchangeInstrumentDifference':
-        ind = 8
+        ind = 7
         from_p_len = data[ind-1]
         from_price = data[ind:ind + from_p_len].decode("ascii")
         ind += from_p_len + 1
