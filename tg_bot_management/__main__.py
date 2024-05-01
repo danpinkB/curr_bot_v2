@@ -20,12 +20,13 @@ from tg_bot_management.env import DB_PATH, MANAGEMENT_API_URL, TELEGRAM_BOT_TOKE
 def check_user(err):
     def decorator(func):
         def wrapper(service, update: Update, context: ContextTypes.DEFAULT_TYPE):
-            if os.path.exists(f"{os.getcwd()}/.var/users/{update.message.chat_id}"):
+            if os.path.exists(f"{DB_PATH}/.var/users/{update.message.chat_id}"):
                 return func(service, update, context)
             return err(service, update, context)
 
         return wrapper
     return decorator
+
 
 help_registry = list()
 

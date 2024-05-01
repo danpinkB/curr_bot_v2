@@ -12,7 +12,7 @@ from inmemory_storage.tg_settings_db.structures import TelegramSettings
 from inmemory_storage.tg_settings_db.tg_settings_db import tg_settings_db
 from message_broker.message_broker import message_broker
 from message_broker.topics.notification import ExchangeInstrumentDifference, subscribe_notification_topic
-from tg_bot_notifier.env import TELEGRAM_BOT_TOKEN
+from tg_bot_notifier.env import TELEGRAM_BOT_TOKEN, DB_PATH
 
 
 def to_message(message: ExchangeInstrumentDifference):
@@ -24,7 +24,7 @@ def to_message(message: ExchangeInstrumentDifference):
 
 
 async def publish_telegram_notification(message: ExchangeInstrumentDifference, bot) -> None:
-    for chat_id in os.listdir(f'{os.getcwd()}/.var/users'):
+    for chat_id in os.listdir(f'{DB_PATH}/.var/users'):
         await bot.send_message(chat_id, to_message(message))
 
 
