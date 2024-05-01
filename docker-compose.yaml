@@ -71,7 +71,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       SYNC_DB__DSN : ${NOTIFIER_SYNC_DB__DSN}
 
-      DB_PATH: ""
+      DB_PATH: "/docker_app"
     depends_on:
       - management_api
 
@@ -89,7 +89,7 @@ services:
       MESSAGE_BROKER__DSN : ${MESSAGE_BROKER__DSN}
       SYNC_DB__DSN : ${NOTIFIER_SYNC_DB__DSN}
       SETTINGS_DB__DSN: ${SETTINGS_DB__DSN}
-      DB_PATH: ""
+      DB_PATH: "/docker_app"
     depends_on:
       - message_broker
 

@@ -78,7 +78,7 @@ class TGBotMainService:
     async def authorize(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         command, password = update.message.text.split(" ")
         if password == TELEGRAM_BOT_PASSWORD:
-            with open(f"{DB_PATH}/.var/users/{update.message.chat_id}", "w"):
+            with open(f"{DB_PATH}/.var/users/{update.message.chat_id}", "w+"):
                 await update.message.reply_text("your welcome")
 
     @tg_handler_name("price", "/price [symbol] - get symbol prices")
