@@ -56,7 +56,7 @@ async def main():
         # print(message)
         settings = await settings_cacher.get_settings()
         m_key = message.instrument.name
-        logging.info(f'{message}, \n percent: {settings.percent} difference {message.calc_difference()}')
+        # logging.info(f'{message}, \n percent: {settings.percent} difference {message.calc_difference()}')
         if message.calc_difference() >= settings.percent and not await locker_db.is_lock(m_key):
             await publish_telegram_notification(message, bot)
             await locker_db.lock_action(m_key, settings.messages_delay*1000)

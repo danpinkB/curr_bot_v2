@@ -33,7 +33,7 @@ async def _consume_callback(ex_last_price: LastPriceMessage, broker: RMQConnecti
 async def send_difference(broker: RMQConnectionAsync, instrument: Instrument, current_exchange: Exchange, current_price: InstrumentPrice, exchange: Exchange, price: InstrumentPrice) -> None:
     # logging.info(f'{instrument.name} {current_exchange.name} buy {current_price.buy} \n {exchange.name} sell {price.sell}')
     if current_price.buy < price.sell:
-        logging.info(f'{str(instrument)} {current_price.buy}, {price.sell}')
+        # logging.info(f'{str(instrument)} {current_price.buy}, {price.sell}')
         await publish_notification_topic(broker, ExchangeInstrumentDifference(
             instrument=instrument,
             buy_exchange=current_exchange,
