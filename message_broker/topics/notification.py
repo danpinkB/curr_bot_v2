@@ -41,7 +41,7 @@ class ExchangeInstrumentDifference(NamedTuple):
     sell_price: Decimal
 
     def calc_difference(self) -> Decimal:
-        return ((self.buy_price - self.sell_price) / self.buy_price) * 100
+        return ((self.sell_price - self.buy_price) / self.buy_price) * 100
 
     def to_bytes(self) -> bytes:
         from_price = str(self.buy_price).encode("ascii")
